@@ -144,6 +144,16 @@
             this.display_cycle_index=1; this.current_phase=1; this.session_count=0;
             this.exercise_usage_count={}; this.last_session_exercises=[]; this.last_session_volumes={}; this.all_sessions=[];
             this.persist();
+          },
+          startNewCycle(){
+            this.display_cycle_index = (this.display_cycle_index || 1) + 1;
+            this.current_phase = 1;
+            this.session_count = 0;
+            this.exercise_usage_count = {};
+            this.last_session_exercises = [];
+            this.last_session_volumes = {};
+            this.all_sessions = [];
+            this.persist();
           }
         };
         return eng;
@@ -153,17 +163,39 @@
       const SFG = createEngine({
         key:'everstrong:sfg:v1',
         patterns:{
-          "Swing Pattern":["One-arm Swing","Two-arm Swing","Double Swing"],
-          "Get Up Pattern":["Get Up","Windmill","Bent Press"],
-          "Clean Pattern":["Single Dead Clean","Double Clean","One-arm Row"],
-          "Squat Pattern":["Goblet Squat","Single Front Squat","Double Front Squat"],
-          "Press Pattern":["Military Press","Half Kneeling Press","Floor Press"],
-          "Snatch Pattern":["Snatch","Low Pull Snatch","High Pull"],
-          "Hybrid Pattern":["Double Clean & Press","Double Clean & Front Squat","Double Clean & Jerk"]
+          "Swing Pattern": [
+            "One-Legged Deadlift", "Double Sumo Deadlift", "Single Leg Glute Bridge",
+            "One-arm Swing", "(Side Stepping) Two-arm Swing", "Double Swing"
+          ],
+          "Get Up Pattern": [
+            "(3 Min) Get Up", "Supine to Sit Up", "Windmill",
+            "Bent Press", "Supine to Half Kneel", "Half Kneel to Stand"
+          ],
+          "Clean Pattern": [
+            "HS-Plank", "Front Rack Carry", "Single Dead Clean",
+            "Double Clean", "Pull Up/Chin Up", "One-arm Row"
+          ],
+          "Squat Pattern": [
+            "B-stance Goblet Squat", "Single Front Squat", "Paused Front Squat",
+            "Double Front Squat", "Athletic Lunge", "Bottom Up Squat"
+          ],
+          "Press Pattern": [
+            "Military Press", "Top Down Press", "Half Kneeling Press",
+            "Floor Press", "Double Push Press", "Double Push Jerk"
+          ],
+          "Snatch Pattern": [
+            "Overhead Carry", "Snatch", "Low Pull Snatch",
+            "High Pull", "Front/Side Raise Snatch", "Double Snatch"
+          ],
+          "Hybrid Pattern": [
+            "Double Clean & Press", "Double Clean & Front Squat", "Double Snatch & Overhead Walk",
+            "Double Clean & Jerk", "Double Snatch & Press", "Double Front Squat & Push Press"
+          ]
         },
         cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
         sessionsPerCycle:36
       });
+
       const SFL = createEngine({
         key:'everstrong:sfl:v1',
         patterns:{
@@ -174,6 +206,7 @@
         cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
         sessionsPerCycle:18
       });
+
       const SFB = createEngine({
         key:'everstrong:sfb:v1',
         patterns:{
@@ -348,7 +381,7 @@
         );
       }
 
-      /* ========== Smart list renderer (no stray hyphens; clean blank lines) ========== */
+      /* ========== Smart list renderer ========== */
       function renderSmartList(lines){
         const out=[]; let buffer=[];
         function flushList(){
@@ -462,6 +495,7 @@
         const isRecovery = m.modality==='recovery';
         const isBreathing = m.modality==='breathing';
         const isWarmup = m.modality==='warmup';
+        const isKbTest = m.modality==='kettlebell_test';
         const title = isHIIT
           ? `Inferno${m.su?` • ${m.su} SU`:''}${m.date ? ` • ${new Date(m.date).toLocaleDateString()}` : ''}`
           : isRecovery
@@ -470,7 +504,9 @@
               ? `Breathing${m.minutes?` • ${m.minutes} min`:''}${m.date?` • ${new Date(m.date).toLocaleDateString()}`:''}`
               : isWarmup
                 ? `Warm-up`
-                : (m.cycle && m.phase && m.session) ? `${(m.modality||'Session')[0].toUpperCase()}${(m.modality||'session').slice(1)} ${m.cycle}.${m.phase}.${m.session}` : `Today's Session`;
+                : isKbTest
+                  ? `Kettlebell Test Day${m.date?` • ${new Date(m.date).toLocaleDateString()}`:''}`
+                  : (m.cycle && m.phase && m.session) ? `${(m.modality||'Session')[0].toUpperCase()}${(m.modality||'session').slice(1)} ${m.cycle}.${m.phase}.${m.session}` : `Today's Session`;
 
         return (
           <div className="p-4 card mb-4">
@@ -555,7 +591,6 @@
         );
       }
 
-      /* ========== Performance form (Load/RPE/Notes) ========== */
       function PerformanceForm({ session, onChange }){
         const m = session?.meta || {};
         const perf = m.performance || { load:"", rpe:"", notes:"" };
@@ -716,7 +751,7 @@
         }
 
         function restartSelected(){
-          if(session && session.meta && ['hiit','recovery','breathing','warmup'].includes(session.meta.modality)){
+          if(session && session.meta && ['hiit','recovery','breathing','warmup','kettlebell_test'].includes(session.meta.modality)){
             try{localStorage.removeItem(currentKey(session.meta.modality));}catch(e){}
           }
           const eng=engineFor(modality);
@@ -740,13 +775,126 @@
           arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:s.main, meta:s.meta });
           lsSet(historyKey(m),arr);
         }
+        function updatePerformance(perf){
+          if(!session) return;
+          const next = { ...session, meta: { ...session.meta, performance: perf } };
+          lsSet(`current:${session.meta?.modality || modality}`, next);
+          setSession(next);
+        }
+
+        function openKbTestDay(){
+          const lines = [
+            "Kettlebell Test Day — perform the test with ONE kettlebell heavier than your current working bell.",
+            "",
+            "* Goal: complete all prescribed quality standards with the heavier bell.",
+            "* If you pass everything: you may start a NEW cycle using this heavier bell.",
+            "* If not: stay with your current bell and continue to develop in the next phase.",
+            "",
+            "Tip",
+            "* Log your bell choice in Performance (Load) and/or save the new bell when prompted."
+          ];
+          const tSession = {
+            main: lines,
+            meta: { modality:'kettlebell_test', date: new Date().toISOString() }
+          };
+          lsSet(currentKey('kettlebell_test'), tSession);
+          setModality('kettlebell');
+          setSession(tSession);
+          setElapsed(0); setRunning(false);
+        }
+
+        function planBarbellIncrease(upperPct, lowerPct){
+          const plan = { upper: upperPct, lower: lowerPct, date: new Date().toISOString() };
+          lsSet('sfl:planned_increase', plan);
+        }
+
         function completeSession(){
           if(!session) return;
           setRunning(false);
+
           const metaMod = session.meta && session.meta.modality;
+
+          // Always save current pinned session to history
           saveToHistory(session, metaMod ? metaMod : modality);
-          setElapsed(0);
-          if(!metaMod){ lsSet("last_modality", modality); setLastModalityStored(modality); }
+
+          // ====== Special: Kettlebell Test Day completion ======
+          if(metaMod==='kettlebell_test'){
+            const passed = confirm("Did you pass ALL test standards with the heavier bell?");
+            if(passed){
+              const newBell = prompt('Enter the NEW (heavier) kettlebell you will use for the next cycle (e.g., "24 kg"):', lsGet('kb:bell_current', '') || '');
+              if(newBell && newBell.trim()){ lsSet('kb:bell_current', newBell.trim()); }
+
+              // Start a fresh SFG cycle
+              if(typeof SFG.startNewCycle==='function'){ SFG.startNewCycle(); }
+              else {
+                SFG.display_cycle_index = (SFG.display_cycle_index||1) + 1;
+                SFG.current_phase = 1;
+                SFG.session_count = 0;
+                SFG.exercise_usage_count = {};
+                SFG.last_session_exercises = [];
+                SFG.last_session_volumes = {};
+                SFG.all_sessions = [];
+                SFG.persist();
+              }
+              const s = SFG.generate_single_session();
+              s.meta.modality = 'kettlebell';
+              lsSet(currentKey('kettlebell'), s);
+              try{ localStorage.removeItem(currentKey('kettlebell_test')); }catch(e){}
+              setModality('kettlebell');
+              setSession(s);
+              setElapsed(0);
+              alert("Congrats — new cycle started with the heavier bell.");
+              return;
+            } else {
+              alert("No worries. Stay with your current bell and continue in the next phase.");
+            }
+            try{ localStorage.removeItem(currentKey('kettlebell_test')); }catch(e){}
+            setSession(null);
+            return;
+          }
+
+          // ====== End-of-cycle hooks (only when a MAIN session finished) ======
+          if(!metaMod && session?.meta?.phase_end){
+            // Kettlebell end-of-cycle (36/36): offer Test Day (heavier bell)
+            if(modality==='kettlebell'){
+              const goTest = confirm(
+                "Kettlebell cycle complete (36/36).\nDo you want to run the Kettlebell Test Day now?\n" +
+                "Rule: perform the test with ONE kettlebell heavier than your current working bell."
+              );
+              if(goTest){
+                openKbTestDay();
+                return;
+              }
+            }
+
+            // Barbell end-of-cycle: offer increase or continue to next phase with higher volume
+            if(modality==='barbell'){
+              const msg =
+                "Barbell cycle complete.\nIf all lifts were passed, choose:\n\n" +
+                "1) Increase for next cycle:\n" +
+                "   Upper body: +2.5–5%\n" +
+                "   Lower body: +5–10%\n\n" +
+                "Type one of: '2.5/5' or '5/10'\n" +
+                "Or leave empty to continue into the next phase with higher volume (as already set).";
+              const choice = prompt(msg, "");
+              if(choice){
+                const norm = choice.replace(/\s+/g,'').toLowerCase();
+                if(norm==='2.5/5' || norm==='2.5/5.0'){
+                  planBarbellIncrease(2.5,5);
+                  alert("Planned: Upper +2.5%, Lower +5% for the next cycle.");
+                } else if(norm==='5/10' || norm==='5.0/10'){
+                  planBarbellIncrease(5,10);
+                  alert("Planned: Upper +5%, Lower +10% for the next cycle.");
+                } else {
+                  alert("Saved nothing. You can plan later.");
+                }
+              } else {
+                alert("Continuing with the next phase and higher volume (as already set).");
+              }
+            }
+          }
+
+          // ====== For special pinned (hiit/recovery/breathing/warmup), clear and stop here ======
           const special = ['hiit','recovery','breathing','warmup'];
           if(special.includes(metaMod)){
             try{localStorage.removeItem(currentKey(metaMod));}catch(e){}
@@ -754,17 +902,14 @@
             alert(`${metaMod==='hiit'?'Inferno':metaMod==='recovery'?'Active Recovery':metaMod==='warmup'?'Warm-up':'Breathing'} saved to history.`);
             return;
           }
+
+          // ====== Otherwise, generate the next main session in the current modality ======
           const eng=engineFor(modality);
           const s=eng.generate_single_session();
           s.meta.modality=modality;
           lsSet(currentKey(modality),s);
           setSession(s);
-        }
-        function updatePerformance(perf){
-          if(!session) return;
-          const next = { ...session, meta: { ...session.meta, performance: perf } };
-          lsSet(`current:${session.meta?.modality || modality}`, next);
-          setSession(next);
+          setElapsed(0);
         }
 
         // ==== Inferno ====
@@ -810,9 +955,8 @@
           setElapsed(0); setRunning(false);
         }
 
-        // ==== Active Recovery (pin all options) ====
+        // ==== Active Recovery options (inline gate mode) ====
         function chooseMobility(){
-          setActiveRecoveryChoice("A");
           const lines = [
             "Mobility — do 5–10 smooth reps per movement",
             "",
@@ -853,7 +997,6 @@
           setElapsed(0); setRunning(false);
         }
         function chooseFlowPlusZone2(){
-          setActiveRecoveryChoice("B");
           const flow = (typeof window.GFM_FLOW_GENERATE==='function') ? window.GFM_FLOW_GENERATE() : ["Flow generator unavailable."];
           const lines = ["Flow (~20 min):", ...flow, "", "Then: 30 min Zone 2 cardio (run/bike/row)"];
           const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Flow + Zone 2' } };
@@ -862,46 +1005,11 @@
           setElapsed(0); setRunning(false);
         }
         function chooseZone2Only(){
-          setActiveRecoveryChoice("C");
           const lines = ["Zone 2 only:", "* Do 30 min continuous Zone 2 cardio (run, bike, row, etc.)."];
           const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Zone 2' } };
           lsSet(`current:recovery`, recSession);
           setSession(recSession);
           setElapsed(0); setRunning(false);
-        }
-
-        // ==== Breathing ====
-        function createBreathingPinned(protocolKey, minutes){
-          const proto = BREATH_PROTOCOLS[protocolKey];
-          const lines = [
-            `Breathing — ${proto.name}`,
-            `* Duration: ${minutes} min`,
-            `* Best for: ${proto.best}`,
-            "",
-            "Tips",
-            "* Nasal breathing",
-            "* Relax shoulders/jaw, soft belly breath"
-          ];
-          const brSession = { main: lines, meta: { modality:'breathing', protocol: proto.name, minutes, date: new Date().toISOString() } };
-          lsSet(`current:breathing`, brSession);
-          setSession(brSession);
-          setElapsed(0); setRunning(false);
-        }
-        function autoCompleteBreathing(protocolKey, minutes){
-          const proto = BREATH_PROTOCOLS[protocolKey];
-          const lines = [
-            `Breathing — ${proto.name}`,
-            `* Duration: ${minutes} min`,
-            `* Best for: ${proto.best}`,
-            "",
-            "Tips",
-            "* Nasal breathing",
-            "* Relax shoulders/jaw, soft belly breath"
-          ];
-          const brSession = { main: lines, meta: { modality:'breathing', protocol: proto.name, minutes, date: new Date().toISOString() } };
-          lsSet(`current:breathing`, brSession);
-          setSession(brSession);
-          setElapsed(minutes*60);
         }
 
         /* ===== FULL-SCREEN GATE ===== */
@@ -938,7 +1046,7 @@
               setRecoveryMode={setRecoveryMode}
             />
 
-            {/* Inline Recovery mode (sliders inline on top) */}
+            {/* Inline Recovery mode */}
             {recoveryMode==="inline" && (
               <div className="p-4 card mb-4">
                 <p className="font-semibold mb-2">Recovery Check</p>
@@ -980,7 +1088,7 @@
               lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
             />
 
-            {/* Actions: for HIIT extras */}
+            {/* Actions */}
             <div className="p-4 card mb-4">
               <div className="flex flex-col gap-2">
                 {session && session.meta && session.meta.modality === 'hiit' ? (
@@ -998,7 +1106,6 @@
                     </button>
                   )
                 )}
-                {/* I Feel Like HIIT Today */}
                 <button onClick={openHiitChooser} className="btn bg-indigo-600 w-full">
                   I Feel Like HIIT Today
                 </button>
@@ -1017,7 +1124,6 @@
               >
                 Complete
               </button>
-              {/* Hide warm-up button if the pinned session IS the warm-up */}
               {!(session && session.meta && session.meta.modality==='warmup') && (
                 <button
                   onClick={openWarmup}
