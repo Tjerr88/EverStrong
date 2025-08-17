@@ -15,6 +15,7 @@
       body { -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
       .card { border:1px solid rgba(255,255,255,.12); border-radius: .9rem; }
       .btn { border-radius: .9rem; padding:.75rem 1rem; }
+      .btn-sm { border-radius:.7rem; padding:.5rem .75rem; font-size:.9rem; }
       .safe { padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
       a.link { text-decoration: underline; }
     </style>
@@ -272,11 +273,11 @@
       /* ========== Breathing (Full Rest) ========== */
       const BREATH_PROTOCOLS = {
         bottom: { key:'bottom', name:'Bottom Triangle (4–6)', best:'Relax / Recovery',
-          phases:[{label:'Inhale',secs:4},{label:'Exhale',secs:6}], summary:'Kalmeert zenuwstelsel, verlaagt hartslag, ontspanning' },
+          phases:[{label:'Inhale',secs:4},{label:'Exhale',secs:6}], summary:'Calms the nervous system, lowers HR, relaxation' },
         box: { key:'box', name:'Box (4–4–4–4)', best:'Focus / Balance',
-          phases:[{label:'Inhale',secs:4},{label:'Hold',secs:4},{label:'Exhale',secs:4},{label:'Hold',secs:4}], summary:'Balans en focus, stressregulatie' },
+          phases:[{label:'Inhale',secs:4},{label:'Hold',secs:4},{label:'Exhale',secs:4},{label:'Hold',secs:4}], summary:'Balance and focus, stress regulation' },
         tactical: { key:'tactical', name:'Tactical (4–7–8)', best:'Sleep / Deep Relax',
-          phases:[{label:'Inhale',secs:4},{label:'Hold',secs:7},{label:'Exhale',secs:8}], summary:'Diepe ontspanning, slaapbevorderend' }
+          phases:[{label:'Inhale',secs:4},{label:'Hold',secs:7},{label:'Exhale',secs:8}], summary:'Deep relaxation, supports sleep' }
       };
 
       function BreathTimer({ protocolKey, minutes, onDone }) {
@@ -347,7 +348,7 @@
         );
       }
 
-      /* ========== Smart list renderer ========== */
+      /* ========== Smart list renderer (no stray hyphens; clean blank lines) ========== */
       function renderSmartList(lines){
         const out=[]; let buffer=[];
         function flushList(){
@@ -395,7 +396,7 @@
                 </button>
               </div>
               <div className="flex gap-2">
-                <button onClick={onHiit} className="text-sm text-blue-400 underline">HIIT</button>
+                <button onClick={onHiit} className="text-sm text-blue-400 underline">I Feel Like HIIT Today</button>
                 <button onClick={onRestart} className="text-sm text-amber-400 underline">Restart</button>
               </div>
             </div>
@@ -419,7 +420,7 @@
             cls += "bg-gray-200 dark:bg-gray-800";
           }
           return (
-            <label className={cls} title={wasLast ? "Last time used" : ""}>
+            <label className={cls} title={wasLast ? "Last used" : ""}>
               <input type="radio" name="modality" className="hidden" checked={active} onChange={()=>setModality(id)} />
               {label}
               {wasLast && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full" aria-hidden />}
@@ -460,13 +461,16 @@
         const isHIIT = m.modality==='hiit';
         const isRecovery = m.modality==='recovery';
         const isBreathing = m.modality==='breathing';
+        const isWarmup = m.modality==='warmup';
         const title = isHIIT
           ? `Inferno${m.su?` • ${m.su} SU`:''}${m.date ? ` • ${new Date(m.date).toLocaleDateString()}` : ''}`
           : isRecovery
             ? `Active Recovery${m.choice?` • ${m.choice}`:''}`
             : isBreathing
               ? `Breathing${m.minutes?` • ${m.minutes} min`:''}${m.date?` • ${new Date(m.date).toLocaleDateString()}`:''}`
-              : (m.cycle && m.phase && m.session) ? `${(m.modality||'Session')[0].toUpperCase()}${(m.modality||'session').slice(1)} ${m.cycle}.${m.phase}.${m.session}` : `Today's Session`;
+              : isWarmup
+                ? `Warm-up`
+                : (m.cycle && m.phase && m.session) ? `${(m.modality||'Session')[0].toUpperCase()}${(m.modality||'session').slice(1)} ${m.cycle}.${m.phase}.${m.session}` : `Today's Session`;
 
         return (
           <div className="p-4 card mb-4">
@@ -546,7 +550,7 @@
               <button className="btn bg-blue-600 w-full" onClick={()=>onConfirm()}>Continue</button>
               <button className="btn bg-gray-600 w-full" onClick={onSkip}>Skip today</button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">We onthouden je keuze tot middernacht.</p>
+            <p className="text-xs text-gray-400 mt-2">We remember your choice until midnight.</p>
           </div>
         );
       }
@@ -656,7 +660,7 @@
         const [recoveryMode, setRecoveryMode] = useState(lsGet("recovery:mode","gate"));
         useEffect(()=>lsSet("recovery:mode", recoveryMode),[recoveryMode]);
 
-        // On mode change to "gate", always show gate first
+        // route: show full-screen gate if in gate-mode and not confirmed today
         const [route, setRoute] = useState("gate");
         useEffect(()=>{
           if(recoveryMode==="gate"){
@@ -712,7 +716,7 @@
         }
 
         function restartSelected(){
-          if(session && session.meta && ['hiit','recovery','breathing'].includes(session.meta.modality)){
+          if(session && session.meta && ['hiit','recovery','breathing','warmup'].includes(session.meta.modality)){
             try{localStorage.removeItem(currentKey(session.meta.modality));}catch(e){}
           }
           const eng=engineFor(modality);
@@ -743,11 +747,11 @@
           saveToHistory(session, metaMod ? metaMod : modality);
           setElapsed(0);
           if(!metaMod){ lsSet("last_modality", modality); setLastModalityStored(modality); }
-          const special = ['hiit','recovery','breathing'];
+          const special = ['hiit','recovery','breathing','warmup'];
           if(special.includes(metaMod)){
             try{localStorage.removeItem(currentKey(metaMod));}catch(e){}
             setSession(null);
-            alert(`${metaMod==='hiit'?'Inferno':metaMod==='recovery'?'Active Recovery':'Breathing'} saved to history.`);
+            alert(`${metaMod==='hiit'?'Inferno':metaMod==='recovery'?'Active Recovery':metaMod==='warmup'?'Warm-up':'Breathing'} saved to history.`);
             return;
           }
           const eng=engineFor(modality);
@@ -780,7 +784,33 @@
           setElapsed(0); setRunning(false);
         }
 
-        // ==== Active Recovery (pin ALLE opties) ====
+        // ==== Warm-up (fixed routine) ====
+        function openWarmup(){
+          const lines = [
+            "Warm-up — do between 10 reps and your age per movement",
+            "",
+            "* Three-Way Neck",
+            "* Fingers and Wrists",
+            "* Elbow Circles",
+            "* Kettlebell Halo",
+            "* Egyptian",
+            "* Hip Circles",
+            "* Knee Circles",
+            "* Toes, Feet, and Ankles",
+            "* Crocodile Breathing",
+            "* Prying Cobra / Down Dog",
+            "* Cat-Camel (McGill)",
+            "* Frog",
+            "* Tug-of-War Squats"
+          ];
+          const wSession = { main: lines, meta: { modality:'warmup', date:new Date().toISOString() } };
+          lsSet(currentKey('warmup'), wSession);
+          setModality('bodyweight'); // neutral UI
+          setSession(wSession);
+          setElapsed(0); setRunning(false);
+        }
+
+        // ==== Active Recovery (pin all options) ====
         function chooseMobility(){
           setActiveRecoveryChoice("A");
           const lines = [
@@ -825,7 +855,7 @@
         function chooseFlowPlusZone2(){
           setActiveRecoveryChoice("B");
           const flow = (typeof window.GFM_FLOW_GENERATE==='function') ? window.GFM_FLOW_GENERATE() : ["Flow generator unavailable."];
-          const lines = ["Flow (≈20 min):", ...flow, "", "Then: 30 min Zone 2 cardio (run/bike/row)"];
+          const lines = ["Flow (~20 min):", ...flow, "", "Then: 30 min Zone 2 cardio (run/bike/row)"];
           const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Flow + Zone 2' } };
           lsSet(`current:recovery`, recSession);
           setSession(recSession);
@@ -849,8 +879,8 @@
             `* Best for: ${proto.best}`,
             "",
             "Tips",
-            "* Neusademhaling",
-            "* Ontspan schouders/kaak, zachte buikademhaling"
+            "* Nasal breathing",
+            "* Relax shoulders/jaw, soft belly breath"
           ];
           const brSession = { main: lines, meta: { modality:'breathing', protocol: proto.name, minutes, date: new Date().toISOString() } };
           lsSet(`current:breathing`, brSession);
@@ -865,8 +895,8 @@
             `* Best for: ${proto.best}`,
             "",
             "Tips",
-            "* Neusademhaling",
-            "* Ontspan schouders/kaak, zachte buikademhaling"
+            "* Nasal breathing",
+            "* Relax shoulders/jaw, soft belly breath"
           ];
           const brSession = { main: lines, meta: { modality:'breathing', protocol: proto.name, minutes, date: new Date().toISOString() } };
           lsSet(`current:breathing`, brSession);
@@ -908,7 +938,7 @@
               setRecoveryMode={setRecoveryMode}
             />
 
-            {/* Inline Recovery mode (sliders inline bovenaan) */}
+            {/* Inline Recovery mode (sliders inline on top) */}
             {recoveryMode==="inline" && (
               <div className="p-4 card mb-4">
                 <p className="font-semibold mb-2">Recovery Check</p>
@@ -943,57 +973,68 @@
               </div>
             )}
 
-            {/* Modality + Actions */}
+            {/* Modality */}
             <ModalityToggles
               modality={isHIIT?'bodyweight':modality}
               setModality={m=>{ if(m==='hiit')return; setModality(m); }}
               lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
             />
 
-            {/* Action buttons – altijd kijken naar gepinde sessie */}
+            {/* Actions: for HIIT extras */}
             <div className="p-4 card mb-4">
               <div className="flex flex-col gap-2">
-                {session && session.meta && session.meta.modality === 'recovery' ? (
-                  <button onClick={completeSession} className="btn bg-green-600 w-full">
-                    Complete (save Active Recovery{session.meta.choice?` — ${session.meta.choice}`:''})
-                  </button>
-                ) : session && session.meta && session.meta.modality === 'breathing' ? (
-                  <button onClick={completeSession} className="btn bg-green-600 w-full">
-                    Complete (save Breathing)
-                  </button>
-                ) : session && session.meta && session.meta.modality === 'hiit' ? (
-                  <>
-                    <button onClick={completeSession} className="btn bg-green-600 w-full">
-                      Complete (save Inferno)
-                    </button>
-                    <div className="flex flex-col md:flex-row gap-2">
-                      {[300,400,500].map(val=>(
-                        <button key={val} onClick={()=>triggerInferno(val)} className="btn bg-blue-600 w-full">
-                          New Inferno {val}
-                        </button>
-                      ))}
-                    </div>
-                  </>
+                {session && session.meta && session.meta.modality === 'hiit' ? (
+                  <div className="flex flex-col md:flex-row gap-2">
+                    {[300,400,500].map(val=>(
+                      <button key={val} onClick={()=>triggerInferno(val)} className="btn bg-blue-600 w-full">
+                        New Inferno {val}
+                      </button>
+                    ))}
+                  </div>
                 ) : (
-                  (!hasPinned ? (
+                  !hasPinned && (
                     <button onClick={generateCycle} className="btn bg-blue-600 w-full">
                       Generate Cycle (start at 1.1.1)
                     </button>
-                  ) : (
-                    <button onClick={completeSession} className="btn bg-green-600 w-full">
-                      Complete Session → Next
-                    </button>
-                  ))
+                  )
                 )}
+                {/* I Feel Like HIIT Today */}
+                <button onClick={openHiitChooser} className="btn bg-indigo-600 w-full">
+                  I Feel Like HIIT Today
+                </button>
               </div>
             </div>
 
             <SessionView session={session}/>
+
+            {/* Under the pinned session: small Complete + Warm-up */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={completeSession}
+                className="btn-sm bg-green-600 w-1/2"
+                disabled={!session}
+                title={!session ? "No pinned session" : "Save this session"}
+              >
+                Complete
+              </button>
+              {/* Hide warm-up button if the pinned session IS the warm-up */}
+              {!(session && session.meta && session.meta.modality==='warmup') && (
+                <button
+                  onClick={openWarmup}
+                  className="btn-sm bg-emerald-700 w-1/2"
+                  title="Open fixed warm-up routine"
+                >
+                  Warm-up
+                </button>
+              )}
+            </div>
+
             <PerformanceForm session={session} onChange={updatePerformance}/>
             <Timer elapsed={elapsed} setElapsed={setElapsed} running={running} setRunning={setRunning} />
 
             {/* History tabs */}
             <History modality={(session && session.meta && session.meta.modality) ? session.meta.modality : (isHIIT?'hiit':modality)} />
+            <History modality="warmup" />
             <History modality="breathing" />
 
             {/* Export */}
@@ -1006,7 +1047,7 @@
             </div>
 
             <footer className="text-xs text-center mt-6 text-gray-400 pb-[calc(env(safe-area-inset-bottom)+8px)]">
-              Kettlebell • Barbell • Bodyweight • Inferno • Recovery • Breathing
+              Kettlebell • Barbell • Bodyweight • Inferno • Warm-up • Recovery • Breathing
             </footer>
           </div>
         );
@@ -1016,3 +1057,4 @@
     </script>
   </body>
 </html>
+
