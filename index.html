@@ -1,973 +1,819 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
-  <head>
-    <meta charset="UTF-8" />
-    <title>EverStrong</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-    <!-- Tailwind + React + Babel -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config={darkMode:'class'}</script>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <style>
-      :root { color-scheme: light dark; }
-      body { -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
-      .card { border:1px solid rgba(255,255,255,.12); border-radius:.9rem; }
-      .btn { border-radius:.9rem; padding:.75rem 1rem; }
-      .btn-sm { border-radius:.7rem; padding:.5rem .75rem; font-size:.9rem; }
-      .safe { padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
-    </style>
-  </head>
-  <body class="bg-gray-100 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
-    <div id="root" class="safe py-3"></div>
+<head>
+  <meta charset="UTF-8" />
+  <title>EverStrong</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={darkMode:'class'}</script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root { color-scheme: light dark; }
+    body { -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
+    .card { border:1px solid rgba(255,255,255,.12); border-radius:.9rem; }
+    .btn { border-radius:.9rem; padding:.75rem 1rem; }
+    .btn-sm { border-radius:.7rem; padding:.5rem .75rem; font-size:.9rem; }
+    .safe { padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
+  </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
+  <div id="root" class="safe py-3"></div>
 
-    <script type="text/babel" data-presets="react">
-      const { useState, useEffect, useRef, useMemo } = React;
+  <script type="text/babel" data-presets="env,react">
+    const { useState, useEffect, useRef, useMemo } = React;
 
-      /* ========== utils ========== */
-      function lsGet(k, f){ try{ const v=localStorage.getItem(k); return v? JSON.parse(v): f; } catch(e){ return f; } }
-      function lsSet(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
-      function fmtHMS(secs){
-        const s=Math.max(0,Math.floor(secs));
-        const hh=('0'+Math.floor(s/3600)).slice(-2);
-        const mm=('0'+Math.floor((s%3600)/60)).slice(-2);
-        const ss=('0'+(s%60)).slice(-2);
-        return `${hh}:${mm}:${ss}`;
-      }
-      function todayStr(){ return new Date().toDateString(); }
-      function getLatestMainModalityFromHistory(){
-        const keys = ["history:kettlebell","history:barbell","history:bodyweight"];
-        let best = null, bestDate = 0;
-        keys.forEach(k=>{
-          const arr = lsGet(k,[]);
-          if (!Array.isArray(arr) || arr.length===0) return;
-          const last = arr.reduce((a,b)=> new Date(a.saved_at)>new Date(b.saved_at)?a:b);
-          const t = new Date(last.saved_at).getTime();
-          if (t > bestDate) { bestDate = t; best = k.split(":")[1]; }
-        });
-        return best;
-      }
+    function lsGet(k, f){ try{ const v=localStorage.getItem(k); return v? JSON.parse(v): f; } catch(e){ return f; } }
+    function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+    function fmtHMS(secs){
+      const s=Math.max(0,Math.floor(secs));
+      const hh=('0'+Math.floor(s/3600)).slice(-2);
+      const mm=('0'+Math.floor((s%3600)/60)).slice(-2);
+      const ss=('0'+(s%60)).slice(-2);
+      return `${hh}:${mm}:${ss}`;
+    }
+    function todayStr(){ return new Date().toDateString(); }
+    function getLatestMainModalityFromHistory(){
+      const keys = ["history:kettlebell","history:barbell","history:bodyweight"];
+      let best = null, bestDate = 0;
+      keys.forEach(k=>{
+        const arr = lsGet(k,[]);
+        if (!Array.isArray(arr) || arr.length===0) return;
+        const last = arr.reduce((a,b)=> new Date(a.saved_at)>new Date(b.saved_at)?a:b);
+        const t = new Date(last.saved_at).getTime();
+        if (t > bestDate) { bestDate = t; best = k.split(":")[1]; }
+      });
+      return best;
+    }
 
-      /* ========== training engines ========== */
-      function createEngine({ key, patterns, cycleVolumes, sessionsPerCycle=18 }) {
-        const saved = lsGet(key, null);
-        const eng = {
-          key, patterns, cycleVolumes, sessionsPerCycle,
-          session_count: (saved && saved.session_count) || 0,
-          current_phase: (saved && saved.current_phase) || 1,
-          display_cycle_index: (saved && saved.display_cycle_index) || 1,
-          exercise_usage_count: (saved && saved.exercise_usage_count) || {},
-          last_session_exercises: (saved && saved.last_session_exercises) || [],
-          last_session_volumes: (saved && saved.last_session_volumes) || {},
-          all_sessions: (saved && saved.all_sessions) || [],
+    function createEngine({ key, patterns, cycleVolumes, sessionsPerCycle=18 }) {
+      const saved = lsGet(key, null);
+      const eng = {
+        key, patterns, cycleVolumes, sessionsPerCycle,
+        session_count: (saved && saved.session_count) || 0,
+        current_phase: (saved && saved.current_phase) || 1,
+        display_cycle_index: (saved && saved.display_cycle_index) || 1,
+        exercise_usage_count: (saved && saved.exercise_usage_count) || {},
+        last_session_exercises: (saved && saved.last_session_exercises) || [],
+        last_session_volumes: (saved && saved.last_session_volumes) || {},
+        all_sessions: (saved && saved.all_sessions) || [],
 
-          calculate_volume(exercise, volume_type){
-            return this.cycleVolumes[this.current_phase][volume_type];
-          },
-          get_ladder_pattern(exercise, volume){
-            const c=this.current_phase;
-            if (c===1){ if(volume===10)return["1-2-3-4",10]; if(volume===20)return["2x 1-2-3-4",20]; if(volume===30)return["3x 1-2-3-4",30]; }
-            if (c===2){ if(volume===15)return["1-2-3-4-5",15]; if(volume===25)return["1-2-3-4-5 + 1-2-3-4",25]; if(volume===40)return["2x 1-2-3-4-5 + 1-2-3-4",40]; }
-            if (c===3){ if(volume===20)return["2x 1-2-3-4",20]; if(volume===30)return["2x 1-2-3-4-5",30]; if(volume===50)return["3x 1-2-3-4-5 + 1-2",50]; }
-            return [String(volume)+" reps", volume];
-          },
-          get_volume_format(exercise, volume){
-            const [ladder,total]=this.get_ladder_pattern(exercise,volume);
-            return ladder===`${total} reps` ? `${total} reps` : `${total} reps (${ladder})`;
-          },
-          select_exercise_for_pattern(pattern){
-            const list=this.patterns[pattern].slice();
-            const pool=list.filter(ex=>this.last_session_exercises.indexOf(ex)===-1);
-            const candidates=pool.length?pool:list;
-            const useCount=(ex)=>this.exercise_usage_count[ex]||0;
-            let minUse=useCount(candidates[0]);
-            for(let i=1;i<candidates.length;i++){ const u=useCount(candidates[i]); if(u<minUse)minUse=u; }
-            const least=candidates.filter(ex=> (this.exercise_usage_count[ex]||0)===minUse );
-            return least[Math.floor(Math.random()*least.length)];
-          },
-          select_volume_type(pattern, exercise, current_session_volumes){
-            const vals=[]; for(const k in current_session_volumes){ vals.push(current_session_volumes[k]); }
-            const highAlready = vals.indexOf('high')>-1;
-            const entries = this.all_sessions.filter(s => s.phase===this.current_phase && s.exercise===exercise);
-            let lowC=0, medC=0, highC=0;
-            for(let i=0;i<entries.length;i++){
-              const vt=entries[i].volume_type;
-              if(vt==='low')lowC++; else if(vt==='medium')medC++; else if(vt==='high')highC++;
-            }
-            const valid=[];
-            if(medC<3) valid.push('medium');
-            if(lowC<2) valid.push('low');
-            if(highC<1 && !highAlready) valid.push('high');
-            const avoid=this.last_session_volumes ? this.last_session_volumes[pattern] : null;
-            let choices = valid.length ? valid : (highAlready ? ['low','medium'] : ['low','medium','high']);
-            if(avoid && choices.length>1) choices = choices.filter(t=>t!==avoid);
-            return choices[Math.floor(Math.random()*choices.length)];
-          },
-          generate_single_session(){
-            const session_number=(this.session_count%this.sessionsPerCycle)+1;
-            const session_exercises=[]; const current_session_volumes={};
-            const pattern_order=Object.keys(this.patterns).sort(()=>Math.random()-0.5);
+        calculate_volume(exercise, volume_type){
+          return this.cycleVolumes[this.current_phase][volume_type];
+        },
+        get_ladder_pattern(exercise, volume){
+          const c=this.current_phase;
+          if (c===1){ if(volume===10)return["1-2-3-4",10]; if(volume===20)return["2x 1-2-3-4",20]; if(volume===30)return["3x 1-2-3-4",30]; }
+          if (c===2){ if(volume===15)return["1-2-3-4-5",15]; if(volume===25)return["1-2-3-4-5 + 1-2-3-4",25]; if(volume===40)return["2x 1-2-3-4-5 + 1-2-3-4",40]; }
+          if (c===3){ if(volume===20)return["2x 1-2-3-4",20]; if(volume===30)return["2x 1-2-3-4-5",30]; if(volume===50)return["3x 1-2-3-4-5 + 1-2",50]; }
+          return [String(volume)+" reps", volume];
+        },
+        get_volume_format(exercise, volume){
+          const [ladder,total]=this.get_ladder_pattern(exercise,volume);
+          return ladder===`${total} reps` ? `${total} reps` : `${total} reps (${ladder})`;
+        },
+        select_exercise_for_pattern(pattern){
+          const list=this.patterns[pattern].slice();
+          const pool=list.filter(ex=>this.last_session_exercises.indexOf(ex)===-1);
+          const candidates=pool.length?pool:list;
+          const useCount=(ex)=>this.exercise_usage_count[ex]||0;
+          let minUse=useCount(candidates[0]);
+          for(let i=1;i<candidates.length;i++){ const u=useCount(candidates[i]); if(u<minUse)minUse=u; }
+          const least=candidates.filter(ex=> (this.exercise_usage_count[ex]||0)===minUse );
+          return least[Math.floor(Math.random()*least.length)];
+        },
+        select_volume_type(pattern, exercise, current_session_volumes){
+          const vals=[]; for(const k in current_session_volumes){ vals.push(current_session_volumes[k]); }
+          const highAlready = vals.indexOf('high')>-1;
+          const entries = this.all_sessions.filter(s => s.phase===this.current_phase && s.exercise===exercise);
+          let lowC=0, medC=0, highC=0;
+          for(let i=0;i<entries.length;i++){
+            const vt=entries[i].volume_type;
+            if(vt==='low')lowC++; else if(vt==='medium')medC++; else if(vt==='high')highC++;
+          }
+          const valid=[];
+          if(medC<3) valid.push('medium');
+          if(lowC<2) valid.push('low');
+          if(highC<1 && !highAlready) valid.push('high');
+          const avoid=this.last_session_volumes ? this.last_session_volumes[pattern] : null;
+          let choices = valid.length ? valid : (highAlready ? ['low','medium'] : ['low','medium','high']);
+          if(avoid && choices.length>1) choices = choices.filter(t=>t!==avoid);
+          return choices[Math.floor(Math.random()*choices.length)];
+        },
+        generate_single_session(){
+          const session_number=(this.session_count%this.sessionsPerCycle)+1;
+          const session_exercises=[]; const current_session_volumes={};
+          const pattern_order=Object.keys(this.patterns).sort(()=>Math.random()-0.5);
 
-            for(const pattern of pattern_order){
-              const exercise=this.select_exercise_for_pattern(pattern);
-              const volume_type=this.select_volume_type(pattern,exercise,current_session_volumes);
-              const volume=this.calculate_volume(exercise,volume_type);
-              const formatted_volume=this.get_volume_format(exercise,volume);
-              session_exercises.push({
-                session:session_number, pattern, exercise, volume_type, volume,
-                formatted_volume, order:session_exercises.length+1, phase:this.current_phase, display_cycle:this.display_cycle_index
-              });
-              // BUGFIX: correct key (no 'ex' typo)
-              this.exercise_usage_count[exercise] = (this.exercise_usage_count[exercise] || 0) + 1;
-              current_session_volumes[pattern]=volume_type;
-            }
-
-            this.last_session_exercises=session_exercises.map(r=>r.exercise);
-            this.last_session_volumes=current_session_volumes;
-            Array.prototype.push.apply(this.all_sessions, session_exercises);
-            this.session_count+=1;
-
-            const main=session_exercises.map(b=>`${b.pattern.replace(/ (Pattern|Category)$/,'')}: ${b.exercise} — ${b.formatted_volume}`);
-            this.persist();
-            return { main, meta:{ modality:null, cycle:this.display_cycle_index, phase:this.current_phase, session:session_number, phase_end:(session_number===this.sessionsPerCycle) } };
-          },
-          persist(){
-            lsSet(this.key,{
-              session_count:this.session_count, current_phase:this.current_phase,
-              display_cycle_index:this.display_cycle_index, exercise_usage_count:this.exercise_usage_count,
-              last_session_exercises:this.last_session_exercises, last_session_volumes:this.last_session_volumes,
-              all_sessions:this.all_sessions
+          for(const pattern of pattern_order){
+            const exercise=this.select_exercise_for_pattern(pattern);
+            const volume_type=this.select_volume_type(pattern,exercise,current_session_volumes);
+            const volume=this.calculate_volume(exercise,volume_type);
+            const formatted_volume=this.get_volume_format(exercise,volume);
+            session_exercises.push({
+              session:session_number, pattern, exercise, volume_type, volume,
+              formatted_volume, order:session_exercises.length+1, phase:this.current_phase, display_cycle:this.display_cycle_index
             });
-          },
-          hardResetToStart(){
-            this.display_cycle_index=1; this.current_phase=1; this.session_count=0;
-            this.exercise_usage_count={}; this.last_session_exercises=[]; this.last_session_volumes={}; this.all_sessions=[];
-            this.persist();
-          },
-          startNewCycle(){
-            this.display_cycle_index=(this.display_cycle_index||1)+1;
-            this.current_phase=1; this.session_count=0; this.exercise_usage_count={}; this.last_session_exercises=[]; this.last_session_volumes={}; this.all_sessions=[];
-            this.persist();
+            this.exercise_usage_count[exercise]=(this.exercise_usage_count[exercise]||0)+1;
+            current_session_volumes[pattern]=volume_type;
           }
-        };
-        return eng;
-      }
 
-      /* ========== define engines ========== */
-      const SFG = createEngine({
-        key:'everstrong:sfg:v1',
-        patterns:{
-          "Swing Pattern": ["One-Legged Deadlift","Double Sumo Deadlift","Single Leg Glute Bridge","One-arm Swing","(Side Stepping) Two-arm Swing","Double Swing"],
-          "Get Up Pattern": ["(3 Min) Get Up","Supine to Sit Up","Windmill","Bent Press","Supine to Half Kneel","Half Kneel to Stand"],
-          "Clean Pattern": ["HS-Plank","Front Rack Carry","Single Dead Clean","Double Clean","Pull Up/Chin Up","One-arm Row"],
-          "Squat Pattern": ["B-stance Goblet Squat","Single Front Squat","Paused Front Squat","Double Front Squat","Athletic Lunge","Bottom Up Squat"],
-          "Press Pattern": ["Military Press","Top Down Press","Half Kneeling Press","Floor Press","Double Push Press","Double Push Jerk"],
-          "Snatch Pattern": ["Overhead Carry","Snatch","Low Pull Snatch","High Pull","Front/Side Raise Snatch","Double Snatch"],
-          "Hybrid Pattern": ["Double Clean & Press","Double Clean & Front Squat","Double Snatch & Overhead Walk","Double Clean & Jerk","Double Snatch & Press","Double Front Squat & Push Press"]
-        },
-        cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
-        sessionsPerCycle:36
-      });
-      const SFL = createEngine({
-        key:'everstrong:sfl:v1',
-        patterns:{
-          "Leg Pattern":["Back Squat","Front Squat","Zercher Squat"],
-          "Push Pattern":["Bench Press","Incline Bench Press","Shoulder Press"],
-          "Pull Pattern":["Conventional Deadlift","Goodmorning","Sumo Deadlift"]
-        },
-        cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
-        sessionsPerCycle:18
-      });
-      const SFB = createEngine({
-        key:'everstrong:sfb:v1',
-        patterns:{
-          "Leg Category":["Box Pistol","Top Down Pistol","Full Pistol"],
-          "Push Category":["One-arm One-leg Push Up","Wall HSPU (assist)","Dips"],
-          "Pull Category":["Tactical Pull Up","Hanging Leg Raise","Front Lever (prog)"]
-        },
-        cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
-        sessionsPerCycle:18
-      });
+          this.last_session_exercises=session_exercises.map(r=>r.exercise);
+          this.last_session_volumes=current_session_volumes;
+          Array.prototype.push.apply(this.all_sessions, session_exercises);
+          this.session_count+=1;
 
-      /* ========== Inferno (300/400/500 SU) ========== */
-      (function(){
-        const db = {
-          squat: [
-            { name:"Goblet Squat", stim:1.3, uni:false },
-            { name:"Bulgarian Split Squat", stim:1.5, uni:true },
-            { name:"Cossack", stim:1.5, uni:true }
-          ],
-          hinge: [
-            { name:"Two-arm Swing", stim:1.1, uni:false },
-            { name:"One-arm Swing", stim:1.2, uni:true },
-            { name:"Deadlift (KB)", stim:0.9, uni:false }
-          ],
-          push: [
-            { name:"Floor Press", stim:1.2, uni:true },
-            { name:"Military Press", stim:1.6, uni:true },
-            { name:"Push Press", stim:1.3, uni:true }
-          ],
-          pull: [
-            { name:"Bent-over Row", stim:1.4, uni:true },
-            { name:"High Pull", stim:1.4, uni:true },
-            { name:"Clean", stim:1.4, uni:true }
-          ],
-          core: [
-            { name:"Russian Twist", stim:0.7, uni:false },
-            { name:"Turkish Get-up", stim:3.5, uni:true },
-            { name:"Windmill", stim:1.8, uni:true }
-          ],
-          hybrid: [
-            { name:"Clean & Press", stim:2.0, uni:true },
-            { name:"Clean → Press → Squat", stim:2.5, uni:true },
-            { name:"Snatch & Press", stim:2.0, uni:true }
-          ]
-        };
-        function r(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-        function pick(a){ return a[Math.floor(Math.random()*(a.length))]; }
-        function shuffle(a){ const x=a.slice(); for(let i=x.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [x[i],x[j]]=[x[j],x[i]]; } return x; }
-        function fmt(ex, su){ const reps = Math.round(su / ex.stim); return `${ex.name} — ${ex.uni?`${reps} reps (${Math.ceil(reps/2)} per arm)`:`${reps} reps`} (${su} SU)`; }
-        function build(targetSU){
-          const pats=Object.keys(db);
-          const maxPer=2; let cur=0; const used=Object.fromEntries(pats.map(p=>[p,0])); const out=[];
-          for(const p of pats){
-            const ex=pick(db[p]); const su=r(30,70); cur+=su; used[p]+=1; out.push(fmt(ex,su));
-          }
-          let guard=0;
-          while(cur<targetSU-30 && guard<1000){
-            guard++; const p=pick(pats); if(used[p]>=maxPer) continue;
-            const ex=pick(db[p]); const su=r(30,70); if(cur+su>targetSU+10) break;
-            cur+=su; used[p]+=1; out.push(fmt(ex,su));
-          }
-          return shuffle(out);
+          const main=session_exercises.map(b=>`${b.pattern.replace(/ (Pattern|Category)$/,'')}: ${b.exercise} — ${b.formatted_volume}`);
+          this.persist();
+          return { main, meta:{ modality:null, cycle:this.display_cycle_index, phase:this.current_phase, session:session_number, phase_end:(session_number===this.sessionsPerCycle) } };
+        },
+        persist(){
+          lsSet(this.key,{
+            session_count:this.session_count, current_phase:this.current_phase,
+            display_cycle_index:this.display_cycle_index, exercise_usage_count:this.exercise_usage_count,
+            last_session_exercises:this.last_session_exercises, last_session_volumes:this.last_session_volumes,
+            all_sessions:this.all_sessions
+          });
+        },
+        hardResetToStart(){
+          this.display_cycle_index=1; this.current_phase=1; this.session_count=0;
+          this.exercise_usage_count={}; this.last_session_exercises=[]; this.last_session_volumes={}; this.all_sessions=[];
+          this.persist();
+        },
+        startNewCycle(){
+          this.display_cycle_index=(this.display_cycle_index||1)+1;
+          this.current_phase=1; this.session_count=0; this.exercise_usage_count={}; this.last_session_exercises=[]; this.last_session_volumes={}; this.all_sessions=[];
+          this.persist();
         }
-        window.HELLFIRE_GENERATE = function(target){
-          const allowed=[300,400,500];
-          if(allowed.indexOf(target)===-1){ target = allowed.reduce((b,c)=>Math.abs(c-target)<Math.abs(b-target)?c:b,allowed[0]); }
-          return { lines: build(target), su: target };
-        };
-      })();
+      };
+      return eng;
+    }
 
-      /* ========== Flow Generator (Active Recovery B) ========== */
-      (function(){
-        const blocks = {
-          prep: ["Rockback → Head Nod","Quadruped Hip Circle","Prone Swimmer","Supine Segmental Roll"],
-          seated: ["Seated S Switch","Seated Egyptian","Seated Figure 8 Arms"],
-          halfkneel: ["Half-kneeling Windmill Reach","Half-kneeling Halo","Half-kneeling Hip Opener"],
-          tallkneel: ["Tall-kneeling Bow & Arrow","Tall-kneeling Side Sit → Tall Kneel"],
-          ground: ["Beast Shoulder Tap","Beast to Crab Roll","Crawl → Crab"],
-          transitions: ["Side Sit → Shin Box Switch","Pike → Tabletop → Crab","Crawl → Crab → Sit-through"]
-        };
-        function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
-        window.GFM_FLOW_GENERATE = function(){
-          const seq = [
-            pick(blocks.prep), pick(blocks.seated),
-            pick(blocks.halfkneel), pick(blocks.tallkneel),
-            pick(blocks.ground), pick(blocks.transitions),
-            pick(blocks.seated), pick(blocks.ground),
-            pick(blocks.transitions), pick(blocks.prep),
-          ];
-          return seq.map((line,i)=>`${i+1}. ${line}`);
-        };
-      })();
+    /* ================= ENGINES ================= */
 
-      /* ========== Rest Day Breathing (Bottom Triangle only) ========== */
-      const REST_BREATHING_OPTIONS = [
-        {
-          level: "Beginner",
-          name: "Bottom Triangle 4-4-4",
-          pattern: "Inhale 4s • Exhale 4s • Hold 4s (bottom)",
-          note: "Practice between 5–20 minutes."
-        },
-        {
-          level: "Intermediate",
-          name: "Bottom Triangle 4-6-8",
-          pattern: "Inhale 4s • Exhale 6s • Hold 8s (bottom)",
-          note: "Practice between 5–20 minutes."
-        },
-        {
-          level: "Advanced",
-          name: "Bottom Triangle 6-8-12",
-          pattern: "Inhale 6s • Exhale 8s • Hold 12s (bottom)",
-          note: "Practice between 5–20 minutes."
+    // Kettlebell — OK (36 sessions; volumes 10/20/30, 15/25/40, 20/30/50)
+    const SFG = createEngine({
+      key:'everstrong:sfg:v1',
+      patterns:{
+        "Swing Pattern": ["One-Legged Deadlift","Double Sumo Deadlift","Single Leg Glute Bridge","One-arm Swing","(Side Stepping) Two-arm Swing","Double Swing"],
+        "Get Up Pattern": ["(3 Min) Get Up","Supine to Sit Up","Windmill","Bent Press","Supine to Half Kneel","Half Kneel to Stand"],
+        "Clean Pattern": ["HS-Plank","Front Rack Carry","Single Dead Clean","Double Clean","Pull Up/Chin Up","One-arm Row"],
+        "Squat Pattern": ["B-stance Goblet Squat","Single Front Squat","Paused Front Squat","Double Front Squat","Athletic Lunge","Bottom Up Squat"],
+        "Press Pattern": ["Military Press","Top Down Press","Half Kneeling Press","Floor Press","Double Push Press","Double Push Jerk"],
+        "Snatch Pattern": ["Overhead Carry","Snatch","Low Pull Snatch","High Pull","Front/Side Raise Snatch","Double Snatch"],
+        "Hybrid Pattern": ["Double Clean & Press","Double Clean & Front Squat","Double Snatch & Overhead Walk","Double Clean & Jerk","Double Snatch & Press","Double Front Squat & Push Press"]
+      },
+      cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
+      sessionsPerCycle:36
+    });
+
+    // 🔧 Barbell — FIXED (strict per phase: 10/20/30 • 15/25/40 • 20/30/50)
+    const SFL = createEngine({
+      key:'everstrong:sfl:v2',
+      patterns:{
+        "Leg Pattern":["Back Squat","Front Squat","Zercher Squat"],
+        "Push Pattern":["Bench Press","Incline Bench Press","Shoulder Press"],
+        "Pull Pattern":["Conventional Deadlift","Goodmorning","Sumo Deadlift"]
+      },
+      cycleVolumes:{
+        1:{low:10,medium:20,high:30},
+        2:{low:15,medium:25,high:40},
+        3:{low:20,medium:30,high:50}
+      },
+      sessionsPerCycle:18
+    });
+
+    // Bodyweight — OK (18 sessions; same phase volumes as barbell)
+    const SFB = createEngine({
+      key:'everstrong:sfb:v1',
+      patterns:{
+        "Leg Category":["Box Pistol","Top Down Pistol","Full Pistol"],
+        "Push Category":["One-arm One-leg Push Up","Wall HSPU (assist)","Dips"],
+        "Pull Category":["Tactical Pull Up","Hanging Leg Raise","Front Lever (prog)"]
+      },
+      cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
+      sessionsPerCycle:18
+    });
+
+    /* ============== Inferno (HIIT) ============== */
+    (function(){
+      const db = {
+        squat: [
+          { name:"Goblet Squat", stim:1.3, uni:false },
+          { name:"Bulgarian Split Squat", stim:1.5, uni:true },
+          { name:"Cossack", stim:1.5, uni:true }
+        ],
+        hinge: [
+          { name:"Two-arm Swing", stim:1.1, uni:false },
+          { name:"One-arm Swing", stim:1.2, uni:true },
+          { name:"Deadlift (KB)", stim:0.9, uni:false }
+        ],
+        push: [
+          { name:"Floor Press", stim:1.2, uni:true },
+          { name:"Military Press", stim:1.6, uni:true },
+          { name:"Push Press", stim:1.3, uni:true }
+        ],
+        pull: [
+          { name:"Bent-over Row", stim:1.4, uni:true },
+          { name:"High Pull", stim:1.4, uni:true },
+          { name:"Clean", stim:1.4, uni:true }
+        ],
+        core: [
+          { name:"Russian Twist", stim:0.7, uni:false },
+          { name:"Turkish Get-up", stim:3.5, uni:true },
+          { name:"Windmill", stim:1.8, uni:true }
+        ],
+        hybrid: [
+          { name:"Clean & Press", stim:2.0, uni:true },
+          { name:"Clean → Press → Squat", stim:2.5, uni:true },
+          { name:"Snatch & Press", stim:2.0, uni:true }
+        ]
+      };
+      function r(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+      function pick(a){ return a[Math.floor(Math.random()*(a.length))]; }
+      function shuffle(a){ const x=a.slice(); for(let i=x.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [x[i],x[j]]=[x[j],x[i]]; } return x; }
+      function fmt(ex, su){ const reps = Math.round(su / ex.stim); return `${ex.name} — ${ex.uni?`${reps} reps (${Math.ceil(reps/2)} per arm)`:`${reps} reps`} (${su} SU)`; }
+      function build(targetSU){
+        const pats=Object.keys(db);
+        const maxPer=2; let cur=0; const used=Object.fromEntries(pats.map(p=>[p,0])); const out=[];
+        for(const p of pats){
+          const ex=pick(db[p]); const su=r(30,70); cur+=su; used[p]+=1; out.push(fmt(ex,su));
         }
-      ];
-
-      /* ========== Smart list renderer ========== */
-      function renderSmartList(lines){
-        const out=[]; let buffer=[];
-        function flushList(){
-          if(buffer.length){
-            out.push(
-              <ul className="list-disc ml-6 space-y-1" key={"ul-"+out.length}>
-                {buffer.map((t,i)=>(<li key={i}>{t}</li>))}
-              </ul>
-            );
-            buffer=[];
-          }
+        let guard=0;
+        while(cur<targetSU-30 && guard<1000){
+          guard++; const p=pick(pats); if(used[p]>=maxPer) continue;
+          const ex=pick(db[p]); const su=r(30,70); if(cur+su>targetSU+10) break;
+          cur+=su; used[p]+=1; out.push(fmt(ex,su));
         }
-        lines.forEach((raw, idx)=>{
-          const line = (raw==null) ? "" : String(raw);
-          if(line.trim()===""){
-            flushList();
-            out.push(<div key={"sp-"+idx} className="h-2" />);
-            return;
-          }
-          if(line.startsWith("* ")){
-            buffer.push(line.slice(2));
-          } else {
-            flushList();
-            out.push(<p key={"p-"+idx} className="font-medium mt-3">{line}</p>);
-          }
-        });
-        flushList();
-        return out;
+        return shuffle(out);
       }
+      window.HELLFIRE_GENERATE = function(target){
+        const allowed=[300,400,500];
+        if(allowed.indexOf(target)===-1){ target = allowed.reduce((b,c)=>Math.abs(c-target)<Math.abs(b-target)?c:b,allowed[0]); }
+        return { lines: build(target), su: target };
+      };
+    })();
 
-      /* ========== UI bits ========== */
-      function Header({ onHiit, onToggleDark, onRestart, recoveryMode, setRecoveryMode }) {
-        return (
-          <header className="text-center mb-4">
-            <h1 className="text-3xl md:text-4xl font-bold">EverStrong</h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base">Longevity-first Strength & Conditioning</p>
-            <div className="flex justify-between mt-3 gap-2">
-              <div className="flex items-center gap-3">
-                <button onClick={onToggleDark} className="text-sm text-purple-400 underline">Toggle Dark</button>
-                <button
-                  onClick={()=>setRecoveryMode(m=> m==="gate" ? "inline" : "gate")}
-                  className="text-sm text-teal-400 underline"
-                >
-                  Recovery: {recoveryMode === "gate" ? "Gate" : "Inline"}
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={onHiit} className="text-sm text-blue-400 underline">I Feel Like HIIT Today</button>
-                <button onClick={onRestart} className="text-sm text-amber-400 underline">Restart</button>
-              </div>
-            </div>
-          </header>
-        );
-      }
+    /* ============== Breathing (Rest days only) ============== */
+    const REST_BREATHING_OPTIONS = [
+      { level:"Beginner", name:"Bottom Triangle 4-4-4", pattern:"Inhale 4s • Exhale 4s • Hold 4s (bottom)", note:"Practice 5–20 minutes." },
+      { level:"Intermediate", name:"Bottom Triangle 4-6-8", pattern:"Inhale 4s • Exhale 6s • Hold 8s (bottom)", note:"Practice 5–20 minutes." },
+      { level:"Advanced", name:"Bottom Triangle 6-8-12", pattern:"Inhale 6s • Exhale 8s • Hold 12s (bottom)", note:"Practice 5–20 minutes." }
+    ];
 
-      function ModalityToggles({ modality, setModality, lastModalityVisual }) {
-        function Item({ id, label }){
-          const active = (modality===id);
-          const wasLast = (id===lastModalityVisual);
-          let base = "px-3 py-2 rounded-lg cursor-pointer text-sm relative transition";
-          let cls = base + " ";
-          if (active && wasLast) {
-            cls += "bg-blue-600 text-white ring-2 ring-red-400";
-          } else if (active) {
-            cls += "bg-blue-600 text-white";
-          } else if (wasLast) {
-            cls += "bg-gray-200 dark:bg-gray-800 ring-2 ring-red-400";
-          } else {
-            cls += "bg-gray-200 dark:bg-gray-800";
-          }
-          return (
-            <label className={cls} title={wasLast ? "Last used" : ""}>
-              <input type="radio" name="modality" className="hidden" checked={active} onChange={()=>setModality(id)} />
-              {label}
-              {wasLast && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full" aria-hidden />}
-            </label>
+    function renderSmartList(lines){
+      const out=[]; let buffer=[];
+      function flushList(){
+        if(buffer.length){
+          out.push(
+            <ul className="list-disc ml-6 space-y-1" key={"ul-"+out.length}>
+              {buffer.map((t,i)=>(<li key={i}>{t}</li>))}
+            </ul>
           );
+          buffer=[];
+        }
+      }
+      lines.forEach((raw, idx)=>{
+        const line = (raw==null) ? "" : String(raw);
+        if(line.trim()===""){
+          flushList();
+          out.push(<div key={"sp-"+idx} className="h-2" />);
+          return;
+        }
+        if(line.startsWith("* ")){
+          buffer.push(line.slice(2));
+        } else {
+          flushList();
+          out.push(<p key={"p-"+idx} className="font-medium mt-3">{line}</p>);
+        }
+      });
+      flushList();
+      return out;
+    }
+
+    function Header({ onHiit, onToggleDark, onRestart, recoveryMode, setRecoveryMode }) {
+      return (
+        <header className="text-center mb-4">
+          <h1 className="text-3xl md:text-4xl font-bold">EverStrong</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base">Longevity-first Strength & Conditioning</p>
+          <div className="flex justify-between mt-3 gap-2">
+            <div className="flex items-center gap-3">
+              <button onClick={onToggleDark} className="text-sm text-purple-400 underline">Toggle Dark</button>
+              <button
+                onClick={()=>setRecoveryMode(m=> m==="gate" ? "inline" : "gate")}
+                className="text-sm text-teal-400 underline"
+              >
+                Recovery: {recoveryMode === "gate" ? "Gate" : "Inline"}
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={onHiit} className="text-sm text-blue-400 underline">I Feel Like HIIT Today</button>
+              <button onClick={onRestart} className="text-sm text-amber-400 underline">Restart</button>
+            </div>
+          </div>
+        </header>
+      );
+    }
+
+    function ModalityToggles({ modality, setModality, lastModalityVisual }) {
+      function Item({ id, label }){
+        const active = (modality===id);
+        const wasLast = (id===lastModalityVisual);
+        let base = "px-3 py-2 rounded-lg cursor-pointer text-sm relative transition";
+        let cls = base + " ";
+        if (active && wasLast) {
+          cls += "bg-blue-600 text-white ring-2 ring-red-400";
+        } else if (active) {
+          cls += "bg-blue-600 text-white";
+        } else if (wasLast) {
+          cls += "bg-gray-200 dark:bg-gray-800 ring-2 ring-red-400";
+        } else {
+          cls += "bg-gray-200 dark:bg-gray-800";
         }
         return (
-          <div className="flex flex-wrap gap-2 justify-center mb-3">
-            <Item id="kettlebell" label="Kettlebell" />
-            <Item id="barbell" label="Barbell" />
-            <Item id="bodyweight" label="Bodyweight" />
-          </div>
+          <label className={cls} title={wasLast ? "Last used" : ""}>
+            <input type="radio" name="modality" className="hidden" checked={active} onChange={()=>setModality(id)} />
+            {label}
+            {wasLast && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full" aria-hidden />}
+          </label>
         );
       }
+      return (
+        <div className="flex flex-wrap gap-2 justify-center mb-3">
+          <Item id="kettlebell" label="Kettlebell" />
+          <Item id="barbell" label="Barbell" />
+          <Item id="bodyweight" label="Bodyweight" />
+        </div>
+      );
+    }
 
-      function Timer({ elapsed, setElapsed, running, setRunning }) {
-        const ref=useRef(null);
-        useEffect(()=>{
-          if(running){ ref.current=setInterval(()=>setElapsed(t=>t+1),1000); }
-          else if(ref.current){ clearInterval(ref.current); ref.current=null; }
-          return ()=>{ if(ref.current){ clearInterval(ref.current); ref.current=null; } };
-        },[running,setElapsed]);
-        return (
-          <div className="p-4 card mb-4">
-            <p className="text-xl font-mono text-center">{fmtHMS(elapsed)}</p>
-            <div className="flex gap-2 mt-2">
-              <button className="btn bg-green-600 w-full" onClick={()=>setRunning(true)}>Start</button>
-              <button className="btn bg-yellow-500 text-black w-full" onClick={()=>setRunning(false)}>Stop</button>
-              <button className="btn bg-gray-600 w-full" onClick={()=>{ setElapsed(0); setRunning(false); }}>Reset</button>
-            </div>
+    function Timer({ elapsed, setElapsed, running, setRunning }) {
+      const ref=useRef(null);
+      useEffect(()=>{
+        if(running){ ref.current=setInterval(()=>setElapsed(t=>t+1),1000); }
+        else if(ref.current){ clearInterval(ref.current); ref.current=null; }
+        return ()=>{ if(ref.current){ clearInterval(ref.current); ref.current=null; } };
+      },[running,setElapsed]);
+      return (
+        <div className="p-4 card mb-4">
+          <p className="text-xl font-mono text-center">{fmtHMS(elapsed)}</p>
+          <div className="flex gap-2 mt-2">
+            <button className="btn bg-green-600 w-full" onClick={()=>setRunning(true)}>Start</button>
+            <button className="btn bg-yellow-500 text-black w-full" onClick={()=>setRunning(false)}>Stop</button>
+            <button className="btn bg-gray-600 w-full" onClick={()=>{ setElapsed(0); setRunning(false); }}>Reset</button>
           </div>
-        );
-      }
+        </div>
+      );
+    }
 
-      function SessionView({ session }) {
-        if(!session) return null;
-        const m=session.meta||{};
-        const isHIIT = m.modality==='hiit';
-        const isRecovery = m.modality==='recovery';
-        const isBreathing = m.modality==='breathing';
-        const isWarmup = m.modality==='warmup';
-        const title = isHIIT
-          ? `Inferno${m.su?` • ${m.su} SU`:''}${m.date ? ` • ${new Date(m.date).toLocaleDateString()}` : ''}`
-          : isRecovery
-            ? `Active Recovery${m.choice?` • ${m.choice}`:''}`
-            : isBreathing
-              ? `Breathing${m.minutes?` • ${m.minutes} min`:''}${m.date?` • ${new Date(m.date).toLocaleDateString()}`:''}`
-              : isWarmup
-                ? `Warm-up`
-                : (m.cycle && m.phase && m.session) ? `${(m.modality||'Session')[0].toUpperCase()}${(m.modality||'session').slice(1)} ${m.cycle}.${m.phase}.${m.session}` : `Today's Session`;
+    function SessionView({ session }) {
+      if(!session) return null;
+      const m=session.meta||{};
+      const isHIIT = m.modality==='hiit';
+      const isRecovery = m.modality==='recovery';
+      const isBreathing = m.modality==='breathing';
+      const isWarmup = m.modality==='warmup';
+      const title = isHIIT
+        ? `Inferno${m.su?` • ${m.su} SU`:''}${m.date ? ` • ${new Date(m.date).toLocaleDateString()}` : ''}`
+        : isRecovery
+          ? `Active Recovery${m.choice?` • ${m.choice}`:''}`
+          : isBreathing
+            ? `Breathing${m.minutes?` • ${m.minutes} min`:''}${m.date?` • ${new Date(m.date).toLocaleDateString()}`:''}`
+            : isWarmup
+              ? `Warm-up`
+              : (m.cycle && m.phase && m.session) ? `${(m.modality||'Session')[0].toUpperCase()}${(m.modality||'session').slice(1)} ${m.cycle}.${m.phase}.${m.session}` : `Today's Session`;
 
-        return (
-          <div className="p-4 card mb-4">
-            <h2 className="font-semibold mb-2 text-lg">{title}</h2>
-            <div className="text-base space-y-1">
-              {renderSmartList(session.main || [])}
-            </div>
-            <p className="text-xs text-gray-400 mt-2">Pinned until you press “Complete”.</p>
+      return (
+        <div className="p-4 card mb-4">
+          <h2 className="font-semibold mb-2 text-lg">{title}</h2>
+          <div className="text-base space-y-1">
+            {renderSmartList(session.main || [])}
           </div>
-        );
-      }
+          <p className="text-xs text-gray-400 mt-2">Pinned until you press “Complete”.</p>
+        </div>
+      );
+    }
 
-      function History({ modality }) {
-        const key=`history:${modality}`;
-        const [items,setItems]=useState(lsGet(key,[]));
-        const [open,setOpen]=useState(false);
-        useEffect(()=>{ setItems(lsGet(key,[])); },[modality,open]);
-        if(!items || items.length===0) return <div className="mb-4 text-sm text-gray-400">History (empty)</div>;
-        const sorted=[...items].sort((a,b)=> new Date(b.saved_at) - new Date(a.saved_at));
-        return (
-          <div className="mb-4">
-            <button className="text-sm underline" onClick={()=>setOpen(o=>!o)}>{open?'Hide History':`Show History (${items.length})`}</button>
-            {open && (
-              <div className="mt-2 space-y-2">
-                {sorted.map((h,idx)=>(
-                  <div key={idx} className="p-3 card">
-                    <div className="text-sm flex flex-wrap gap-3">
-                      <span className="font-medium">{(h.meta&&h.meta.modality||'').toUpperCase()}</span>
-                      {h.meta&&h.meta.choice && <span>• {h.meta.choice}</span>}
-                      {h.meta&&h.meta.cycle!=null&&h.meta.phase!=null&&h.meta.session!=null && <span>• {h.meta.cycle}.{h.meta.phase}.{h.meta.session}</span>}
-                      {h.meta && h.meta.date && <span>• {new Date(h.meta.date).toLocaleString()}</span>}
-                      <span>• {new Date(h.saved_at).toLocaleString()}</span>
-                      {h.timer_seconds>0 && <span>• Time: {fmtHMS(h.timer_seconds)}</span>}
-                      {h.meta&&h.meta.su && <span>• {h.meta.su} SU</span>}
-                      {h.meta&&h.meta.protocol && <span>• {h.meta.protocol} {h.meta.minutes}m</span>}
-                      {h.meta&&h.meta.performance && (h.meta.performance.load || h.meta.performance.rpe) && (
-                        <span>• Load/RPE: {h.meta.performance.load||'-'}/{h.meta.performance.rpe||'-'}</span>
-                      )}
-                    </div>
-                    <div className="text-sm mt-1">
-                      {renderSmartList(h.main || [])}
-                    </div>
+    function History({ modality }) {
+      const key=`history:${modality}`;
+      const [items,setItems]=useState(lsGet(key,[]));
+      const [open,setOpen]=useState(false);
+      useEffect(()=>{ setItems(lsGet(key,[])); },[modality,open]);
+      if(!items || items.length===0) return <div className="mb-4 text-sm text-gray-400">History (empty)</div>;
+      const sorted=[...items].sort((a,b)=> new Date(b.saved_at) - new Date(a.saved_at));
+      return (
+        <div className="mb-4">
+          <button className="text-sm underline" onClick={()=>setOpen(o=>!o)}>{open?'Hide History':`Show History (${items.length})`}</button>
+          {open && (
+            <div className="mt-2 space-y-2">
+              {sorted.map((h,idx)=>(
+                <div key={idx} className="p-3 card">
+                  <div className="text-sm flex flex-wrap gap-3">
+                    <span className="font-medium">{(h.meta&&h.meta.modality||'').toUpperCase()}</span>
+                    {h.meta&&h.meta.choice && <span>• {h.meta.choice}</span>}
+                    {h.meta&&h.meta.cycle!=null&&h.meta.phase!=null&&h.meta.session!=null && <span>• {h.meta.cycle}.{h.meta.phase}.{h.meta.session}</span>}
+                    {h.meta && h.meta.date && <span>• {new Date(h.meta.date).toLocaleString()}</span>}
+                    <span>• {new Date(h.saved_at).toLocaleString()}</span>
+                    {h.timer_seconds>0 && <span>• Time: {fmtHMS(h.timer_seconds)}</span>}
+                    {h.meta&&h.meta.su && <span>• {h.meta.su} SU</span>}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      }
-
-      function RecoveryGate({ recovery, setRecovery, onConfirm, onSkip }) {
-        return (
-          <div className="p-4 card mb-4">
-            <p className="font-semibold mb-2">Daily Recovery Check</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
-              {[
-                ['sleep','Sleep'],['energy','Energy'],['body','Body']
-              ].map(([k,l])=>(
-                <div key={k} className="flex items-center gap-3">
-                  <span className="w-16">{l}</span>
-                  <input
-                    type="range" min="0" max="5" value={recovery[k]}
-                    className="w-full h-4"
-                    onChange={e=>{
-                      const next={...recovery,[k]:parseInt(e.target.value,10)};
-                      next.total=next.sleep+next.energy+next.body;
-                      next.gate=next.total>=11?'TRAIN':next.total>=7?'ACTIVE RECOVERY':'FULL REST';
-                      setRecovery(next);
-                    }}
-                  />
-                  <span className="w-6 text-center">{recovery[k]}</span>
+                  <div className="text-sm mt-1">
+                    {renderSmartList(h.main || [])}
+                  </div>
                 </div>
               ))}
             </div>
-            <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
-            <div className="flex flex-col md:flex-row gap-2 mt-3">
-              <button className="btn bg-blue-600 w-full" onClick={()=>onConfirm()}>Continue</button>
-              <button className="btn bg-gray-600 w-full" onClick={onSkip}>Skip today</button>
-            </div>
-            <p className="text-xs text-gray-400 mt-2">We remember your choice until midnight.</p>
-          </div>
-        );
-      }
+          )}
+        </div>
+      );
+    }
 
-      function PerformanceForm({ session, onChange }){
-        const m = session?.meta || {};
-        const perf = m.performance || { load:"", rpe:"", notes:"" };
-        const isStrength = ["kettlebell","barbell","bodyweight"].includes(m.modality);
-        if(!isStrength) return null;
-        return (
-          <div className="p-4 card mb-4">
-            <p className="font-semibold mb-2">Performance</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <div>
-                <label className="text-xs text-gray-400">Load</label>
-                <input className="w-full px-2 py-1 rounded bg-gray-800"
-                       value={perf.load}
-                       onChange={e=>onChange({...perf, load:e.target.value})}/>
+    function RecoveryGate({ recovery, setRecovery, onConfirm, onSkip }) {
+      return (
+        <div className="p-4 card mb-4">
+          <p className="font-semibold mb-2">Daily Recovery Check</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+            {[
+              ['sleep','Sleep'],['energy','Energy'],['body','Body']
+            ].map(([k,l])=>(
+              <div key={k} className="flex items-center gap-3">
+                <span className="w-16">{l}</span>
+                <input
+                  type="range" min="0" max="5" value={recovery[k]}
+                  className="w-full h-4"
+                  onChange={e=>{
+                    const next={...recovery,[k]:parseInt(e.target.value,10)};
+                    next.total=next.sleep+next.energy+next.body;
+                    next.gate=next.total>=11?'TRAIN':next.total>=7?'ACTIVE RECOVERY':'FULL REST';
+                    setRecovery(next);
+                  }}
+                />
+                <span className="w-6 text-center">{recovery[k]}</span>
               </div>
-              <div>
-                <label className="text-xs text-gray-400">RPE (1–10)</label>
-                <input className="w-full px-2 py-1 rounded bg-gray-800"
-                       type="number" min="1" max="10"
-                       value={perf.rpe}
-                       onChange={e=>onChange({...perf, rpe:e.target.value})}/>
-              </div>
-              <div className="md:col-span-3">
-                <label className="text-xs text-gray-400">Notes</label>
-                <textarea className="w-full px-2 py-1 rounded bg-gray-800" rows="3"
-                          value={perf.notes}
-                          onChange={e=>onChange({...perf, notes:e.target.value})}/>
-              </div>
-            </div>
+            ))}
           </div>
-        );
-      }
+          <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
+          <div className="flex flex-col md:flex-row gap-2 mt-3">
+            <button className="btn bg-blue-600 w-full" onClick={onConfirm}>Continue</button>
+            <button className="btn bg-gray-600 w-full" onClick={onSkip}>Skip today</button>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">We remember your choice until midnight.</p>
+        </div>
+      );
+    }
 
-      /* ====== B6E TEST LOGIC ADD-ON ====== */
-      const KB_TEST_ITEMS = [
-        { k: "One-arm Swing", note: "10 reps each arm" },
-        { k: "Get Up",        note: "1 rep each arm" },
-        { k: "Double Clean",  note: "5 reps" },
-        { k: "Military Press",note: "5 reps each arm" },
-        { k: "Double Front Squat", note: "5 reps" },
-        { k: "Snatch",        note: "5 reps each arm" }
+    const BB_REVIEW_NOTE = "If you successfully completed all prescribed reps and sets for all barbell lifts in this phase, you can increase Upper body +2.5–5% and Lower body +5–10% and start a new cycle with the heavier weight. Or continue the same cycle with the current weights and higher volume.";
+
+    const BB_REVIEW_ITEMS = [
+      { id:"legs", label:"Lower Body — All prescribed sets & reps completed across the phase with solid form (no missed reps / no grinders above RPE 9.5)." },
+      { id:"push", label:"Upper Body Push — All prescribed sets & reps completed across the phase with solid form." },
+      { id:"pull", label:"Upper Body Pull — All prescribed sets & reps completed across the phase with solid form." }
+    ];
+
+    const KB_TEST_ITEMS = [
+      { k: "One-arm Swing", note: "10 reps each arm" },
+      { k: "Get Up",        note: "1 rep each arm" },
+      { k: "Double Clean",  note: "5 reps" },
+      { k: "Military Press",note: "5 reps each arm" },
+      { k: "Double Front Squat", note: "5 reps" },
+      { k: "Snatch",        note: "5 reps each arm" }
+    ];
+
+    function buildKbTestSession(){
+      const lines = [
+        "Kettlebell Test Day — Use one bell heavier than your normal bell for Test Day.",
+        "",
+        ...KB_TEST_ITEMS.map(it => `* ${it.k}${it.note ? " — "+it.note : ""}`)
       ];
-      const BB_TEST_ITEMS = [
-        { c:"Legs", k:"Back Squat" }, { c:"Legs", k:"Front Squat" }, { c:"Legs", k:"Zercher Squat" },
-        { c:"Push", k:"Bench Press" }, { c:"Push", k:"Incline Bench Press" }, { c:"Push", k:"Shoulder Press" },
-        { c:"Pull", k:"Conventional Deadlift" }, { c:"Pull", k:"Goodmorning" }, { c:"Pull", k:"Sumo Deadlift" }
+      return { main: lines, meta: { modality: "kettlebell_test", date: new Date().toISOString() } };
+    }
+    function buildBbReviewSession(){
+      const lines = [
+        "Barbell Phase Review (Not a max test)",
+        "",
+        "* " + BB_REVIEW_NOTE,
       ];
-      function buildKbTestSession(){
-        const lines = [
-          "Kettlebell Test Day — Use one bell heavier than your normal bell for Test Day.",
-          "",
-          ...KB_TEST_ITEMS.map(it => `* ${it.k}${it.note ? " — "+it.note : ""}`)
-        ];
-        return { main: lines, meta: { modality: "kettlebell_test", date: new Date().toISOString() } };
-      }
-      function buildBbTestSession(){
-        const lines = [
-          "Barbell Test Day",
-          "",
-          "* Important: If every box is checked, you may increase your weights for the next cycle:",
-          "* Upper body: +2.5–5%",
-          "* Lower body: +5–10%",
-          "",
-          ...BB_TEST_ITEMS.map(it => `* ${it.c}: ${it.k}`)
-        ];
-        return { main: lines, meta: { modality: "barbell_test", date: new Date().toISOString() } };
-      }
-      function TestView({ modality, onSubmit, testChecks, setTestChecks, testPassed, onStartNewCycle, onContinueCycle }) {
-        const isKB = modality === 'kettlebell';
-        const items = isKB ? KB_TEST_ITEMS : BB_TEST_ITEMS;
-        return (
-          <div className="p-4 card mb-4">
-            <h2 className="font-semibold mb-2 text-lg">
-              {isKB ? "Kettlebell Test Day" : "Barbell Test Day"}
-            </h2>
-            {isKB ? (
-              <p className="text-sm mb-2">
-                <strong>Important:</strong> Use one bell heavier than your normal bell for Test Day.
-              </p>
-            ) : (
-              <div className="text-sm mb-2">
-                <p><strong>Important:</strong> If every box is checked, you may increase your weights for the next cycle:</p>
-                <ul className="list-disc ml-6">
-                  <li>Upper body: +2.5–5%</li>
-                  <li>Lower body: +5–10%</li>
-                </ul>
-              </div>
-            )}
-            <div className="space-y-2">
-              {items.map((it, idx) => {
-                const key = isKB ? it.k : `${it.c}:${it.k}`;
-                return (
-                  <label key={idx} className="flex items-center justify-between">
-                    <span className="text-base">
-                      {isKB ? `${it.k}${it.note?` — ${it.note}`:''}` : `${it.c}: ${it.k}`}
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={!!testChecks[key]}
-                      onChange={() => setTestChecks(t => ({ ...t, [key]: !t[key] }))}
-                    />
-                  </label>
-                );
-              })}
+      return { main: lines, meta: { modality: "barbell_test", date: new Date().toISOString() } };
+    }
+
+    function TestView({ modality, onSubmit, testChecks, setTestChecks, testPassed, onStartNewCycle, onContinueCycle }) {
+      const isKB = modality === 'kettlebell';
+      const kbItems = KB_TEST_ITEMS;
+      const bbItems = BB_REVIEW_ITEMS;
+      return (
+        <div className="p-4 card mb-4">
+          <h2 className="font-semibold mb-2 text-lg">
+            {isKB ? "Kettlebell Test Day" : "Barbell Phase Review"}
+          </h2>
+          {isKB ? (
+            <p className="text-sm mb-2">
+              <strong>Important:</strong> Use one bell heavier than your normal bell for Test Day.
+            </p>
+          ) : (
+            <div className="text-sm mb-2">
+              <p>{BB_REVIEW_NOTE}</p>
             </div>
-            {!testPassed ? (
-              <button onClick={onSubmit} className="btn bg-blue-600 w-full mt-3">
-                Submit Test Result
-              </button>
-            ) : (
-              <div className="flex flex-col gap-2 mt-3">
-                <button className="btn bg-green-600 w-full" onClick={onStartNewCycle}>Start New Cycle</button>
-                <button className="btn bg-gray-700 w-full" onClick={onContinueCycle}>Continue This Cycle</button>
-              </div>
-            )}
+          )}
+          <div className="space-y-2">
+            {(isKB ? kbItems : bbItems).map((it, idx) => {
+              const key = isKB ? it.k : it.id;
+              const label = isKB ? `${it.k}${it.note?` — ${it.note}`:''}` : it.label;
+              return (
+                <label key={idx} className="flex items-start justify-between gap-3">
+                  <span className="text-base flex-1">{label}</span>
+                  <input
+                    type="checkbox"
+                    checked={!!testChecks[key]}
+                    onChange={() => setTestChecks(t => ({ ...t, [key]: !t[key] }))}
+                    className="mt-1"
+                  />
+                </label>
+              );
+            })}
           </div>
-        );
-      }
+          {!testPassed ? (
+            <button onClick={onSubmit} className="btn bg-blue-600 w-full mt-3">
+              Submit
+            </button>
+          ) : (
+            <div className="flex flex-col gap-2 mt-3">
+              <button className="btn bg-green-600 w-full" onClick={onStartNewCycle}>Start New Cycle</button>
+              <button className="btn bg-gray-700 w-full" onClick={onContinueCycle}>Continue This Cycle</button>
+            </div>
+          )}
+        </div>
+      );
+    }
 
-      /* ========== Export helpers ========== */
-      function collectAllHistory(){
-        const out = {};
-        for(let i=0;i<localStorage.length;i++){
-          const k = localStorage.key(i);
-          if(k && k.startsWith('history:')){
-            out[k] = lsGet(k,[]);
-          }
+    function collectAllHistory(){
+      const out = {};
+      for(let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        if(k && k.startsWith('history:')){
+          out[k] = lsGet(k,[]);
         }
-        return out;
       }
-      function exportJSON(){
-        const data = collectAllHistory();
-        const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `everstrong-history-${new Date().toISOString().slice(0,10)}.json`;
-        document.body.appendChild(a); a.click(); a.remove();
-        URL.revokeObjectURL(url);
-      }
-      function toCSV(rows){
-        const esc = v => `"${String(v??"").replace(/"/g,'""')}"`;
-        const header = ["saved_at","modality","choice","cycle","phase","session","date","timer_seconds","su","protocol","minutes","performance_load","performance_rpe","notes","lines"];
-        const out = [header.join(",")];
-        rows.forEach(r=>{
-          const m=r.meta||{};
-          out.push([
-            r.saved_at||"",
-            m.modality||"",
-            m.choice||"",
-            m.cycle??"",
-            m.phase??"",
-            m.session??"",
-            m.date?new Date(m.date).toISOString():"",
-            r.timer_seconds??"",
-            m.su??"",
-            m.protocol||"",
-            m.minutes??"",
-            m.performance?.load||"",
-            m.performance?.rpe||"",
-            m.performance?.notes? m.performance.notes.replace(/\\n/g,' ') : "",
-            (r.main||[]).join(" | ")
-          ].map(esc).join(","));
-        });
-        return out.join("\\n");
-      }
-      function exportCSV(){
-        const all = collectAllHistory();
-        const rows = Object.values(all).flat();
-        const csv = toCSV(rows);
-        const blob = new Blob([csv], {type:"text/csv"});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = `everstrong-history-${new Date().toISOString().slice(0,10)}.csv`;
-        document.body.appendChild(a); a.click(); a.remove();
-        URL.revokeObjectURL(url);
-      }
-      function clearAllHistory(){
-        if(!confirm("This will permanently delete ALL history (all modalities, tests, specials). Continue?")) return;
-        const keysToDelete = [];
-        for(let i=0;i<localStorage.length;i++){
-          const k = localStorage.key(i);
-          if(k && k.startsWith('history:')){
-            keysToDelete.push(k);
-          }
+      return out;
+    }
+    function exportJSON(){
+      const data = collectAllHistory();
+      const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `everstrong-history-${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }
+    function toCSV(rows){
+      const esc = v => `"${String(v??"").replace(/"/g,'""')}"`;
+      const header = ["saved_at","modality","choice","cycle","phase","session","date","timer_seconds","su","lines"];
+      const out = [header.join(",")];
+      rows.forEach(r=>{
+        const m=r.meta||{};
+        out.push([
+          r.saved_at||"",
+          m.modality||"",
+          m.choice||"",
+          m.cycle??"",
+          m.phase??"",
+          m.session??"",
+          m.date?new Date(m.date).toISOString():"",
+          r.timer_seconds??"",
+          m.su??"",
+          (r.main||[]).join(" | ")
+        ].map(esc).join(","));
+      });
+      return out.join("\n");
+    }
+    function exportCSV(){
+      const all = collectAllHistory();
+      const rows = Object.values(all).flat();
+      const csv = toCSV(rows);
+      const blob = new Blob([csv], {type:"text/csv"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `everstrong-history-${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }
+    function clearAllHistory(){
+      if(!confirm("This will permanently delete ALL history (all modalities, tests, specials). Continue?")) return;
+      const keysToDelete = [];
+      for(let i=0;i<localStorage.length;i++){
+        const k = localStorage.key(i);
+        if(k && k.startsWith('history:')){
+          keysToDelete.push(k);
         }
-        keysToDelete.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
-        alert("All history cleared.");
       }
+      keysToDelete.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+      alert("All history cleared.");
+    }
 
-      /* ========== App ========== */
-      function App(){
-        const [modality,setModality]=useState(lsGet("modality","kettlebell"));
-        useEffect(()=>lsSet("modality",modality),[modality]);
+    function App(){
+      const [modality,setModality]=useState(lsGet("modality","kettlebell"));
+      useEffect(()=>lsSet("modality",modality),[modality]);
 
-        const [session,setSession]=useState(null);
-        const [elapsed,setElapsed]=useState(0);
-        const [running,setRunning]=useState(false);
-        const [recovery,setRecovery]=useState({sleep:0,energy:0,body:0,total:0,gate:"FULL REST"});
+      const [session,setSession]=useState(null);
+      const [elapsed,setElapsed]=useState(0);
+      const [running,setRunning]=useState(false);
+      const [recovery,setRecovery]=useState({sleep:0,energy:0,body:0,total:0,gate:"FULL REST"});
 
-        const [recoveryMode, setRecoveryMode] = useState(lsGet("recovery:mode","gate"));
-        useEffect(()=>lsSet("recovery:mode", recoveryMode),[recoveryMode]);
+      const [route, setRoute] = useState("gate");
+      const [recoveryMode, setRecoveryMode] = useState(lsGet("recovery:mode","gate"));
+      useEffect(()=>lsSet("recovery:mode", recoveryMode),[recoveryMode]);
 
-        // route: show full-screen gate if in gate-mode and not confirmed today
-        const [route, setRoute] = useState("gate");
-        useEffect(()=>{
-          if(recoveryMode==="gate"){
-            const stamp = lsGet("recovery:stamp", null);
-            const today = todayStr();
-            setRoute(stamp===today ? lsGet("recovery:lastRoute","train") : "gate");
-          } else {
-            setRoute("train");
-          }
-        },[recoveryMode]);
-        useEffect(()=>{
-          if(recoveryMode === "gate"){ setRoute("gate"); }
-        },[recoveryMode]);
-
-        const [lastModalityStored, setLastModalityStored] = useState(lsGet("last_modality", null));
-        const lastModalityVisual = useMemo(()=>{
-          return getLatestMainModalityFromHistory() || lastModalityStored || null;
-        }, [session, route, lastModalityStored, modality, recoveryMode]);
-
-        const currentKey = (m) => `current:${m}`;
-        const historyKey = (m) => `history:${m}`;
-
-        function engineFor(m){ return m==='kettlebell'?SFG : m==='barbell'?SFL : SFB; }
-
-        useEffect(()=>{
-          const cur=lsGet(currentKey(modality),null);
-          setSession(cur);
-          setElapsed(0); setRunning(false);
-        },[modality]);
-
-        function toggleDark(){ document.documentElement.classList.toggle('dark'); }
-
-        function lockToday(routeChosen){
-          lsSet("recovery:stamp", todayStr());
-          lsSet("recovery:lastRoute", routeChosen);
-        }
-        function decideGate(total){
-          if(total>=11) return "train";
-          if(total>=7)  return "recovery";
-          return "fullrest";
-        }
-        function handleGateConfirm(){
-          const routeChosen = decideGate(recovery.total||0);
-          lockToday(routeChosen);
-          setRoute(routeChosen);
-        }
-        function handleGateSkip(){
-          lockToday("train");
+      useEffect(()=>{
+        if(recoveryMode==="gate"){
+          const stamp = lsGet("recovery:stamp", null);
+          const today = todayStr();
+          setRoute(stamp===today ? lsGet("recovery:lastRoute","train") : "gate");
+        } else {
           setRoute("train");
         }
+      },[recoveryMode]);
 
-        function restartSelected(){
-          if(session && session.meta && ['hiit','recovery','breathing','warmup','kettlebell_test','barbell_test'].includes(session.meta.modality)){
-            try{localStorage.removeItem(currentKey(session.meta.modality));}catch(e){}
-          }
-          const eng=engineFor(modality);
-          eng.hardResetToStart();
-          try{localStorage.removeItem(currentKey(modality));}catch(e){ }
-          setSession(null); setElapsed(0); setRunning(false);
-          alert('Reset to 1.1.1 for '+modality);
-        }
-        function generateCycle(){
-          const eng=engineFor(modality);
-          eng.hardResetToStart();
-          const s=eng.generate_single_session();
-          s.meta.modality=modality;
-          lsSet(currentKey(modality),s);
-          setSession(s);
-          setElapsed(0); setRunning(false);
-        }
-        function saveToHistory(s, mod){
-          const m = mod || modality;
-          const arr=lsGet(historyKey(m),[]);
-          arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:s.main, meta:s.meta });
-          lsSet(historyKey(m),arr);
-        }
-        function updatePerformance(perf){
-          if(!session) return;
-          const next = { ...session, meta: { ...session.meta, performance: perf } };
-          lsSet(`current:${session.meta?.modality || modality}`, next);
-          setSession(next);
-        }
+      const [lastModalityStored] = useState(lsGet("last_modality", null));
+      const lastModalityVisual = useMemo(()=>{
+        return getLatestMainModalityFromHistory() || lastModalityStored || null;
+      }, [session, route, lastModalityStored, modality, recoveryMode]);
 
-        // ==== Inferno ====
-        function triggerInferno(target){
-          if(typeof window.HELLFIRE_GENERATE!=='function'){ alert('Inferno engine missing'); return; }
-          const out = window.HELLFIRE_GENERATE(target);
-          const now = new Date().toISOString();
-          const hiitSession = { main: out.lines, meta: { modality:'hiit', su: out.su||target, date: now } };
-          lsSet(currentKey('hiit'), hiitSession);
-          setModality('hiit'); setSession(hiitSession);
-          setElapsed(0); setRunning(false);
-        }
-        function openHiitChooser(){
-          setModality('hiit');
-          const existing=lsGet(currentKey('hiit'),null);
-          if(existing){ setSession(existing); } else {
-            // offer quick choices (pin a generated one)
-            const out = window.HELLFIRE_GENERATE ? window.HELLFIRE_GENERATE(400) : {lines:["HIIT unavailable"], su:400};
-            const hiitSession = { main: out.lines, meta: { modality:'hiit', su: out.su, date: new Date().toISOString() } };
-            lsSet(currentKey('hiit'), hiitSession);
-            setSession(hiitSession);
-          }
-          setElapsed(0); setRunning(false);
-        }
+      const currentKey = (m) => `current:${m}`;
+      const historyKey = (m) => `history:${m}`;
 
-        // ==== Warm-up (fixed routine — NOT saved) ====
-        function openWarmup(){
-          const lines = [
-            "Warm-up — do between 10 reps and your age per movement",
-            "",
-            "* Three-Way Neck",
-            "* Fingers and Wrists",
-            "* Elbow Circles",
-            "* Kettlebell Halo",
-            "* Egyptian",
-            "* Hip Circles",
-            "* Knee Circles",
-            "* Toes, Feet, and Ankles",
-            "* Crocodile Breathing",
-            "* Prying Cobra / Down Dog",
-            "* Cat-Camel (McGill)",
-            "* Frog",
-            "* Tug-of-War Squats"
-          ];
-          const wSession = { main: lines, meta: { modality:'warmup', date:new Date().toISOString() } };
-          lsSet(currentKey('warmup'), wSession);
-          setSession(wSession);
-          setElapsed(0); setRunning(false);
-        }
+      function engineFor(m){ return m==='kettlebell'?SFG : m==='barbell'?SFL : SFB; }
 
-        // ==== Active Recovery quick (inline suggestions) ====
-        function chooseMobility(){
-          const lines = [
-            "Mobility — do 5–10 smooth reps per movement",
-            "",
-            "Hips",
-            "* Figure 4 position",
-            "* Figure 4 lunge",
-            "* Half heel sit",
-            "* Z position switches & Z position side roll",
-            "* Hip Openers – Prone → TGU → Bridge",
-            "",
-            "Shoulders",
-            "* The Egyptian (Seated, Pike, Prone)",
-            "* S movement (Seated, Pike, Prone)",
-            "* Figure 8 in Crawl (6-point & 4-point)",
-            "* Crawl → Crab",
-            "* Pike → Tabletop",
-            "",
-            "Ankles",
-            "* Ankle series (Up & down, In & out, Rotations)",
-            "* Figure 8’s (toes & ankle)",
-            "* Snail",
-            "* Crawl → Frog → Crab transitions",
-            "",
-            "Spine & Neck",
-            "* Supine neck rolls (L ↔ R)",
-            "* Hand on knee rolling",
-            "* Segmental rolling (Neck, arms & legs)",
-            "* Forward & backward rolling",
-            "",
-            "Wrists",
-            "* Finger waves",
-            "* Hand circles",
-            "* Teapot"
-          ];
-          const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Mobility' } };
-          lsSet(`current:recovery`, recSession);
-          setSession(recSession);
-          setElapsed(0); setRunning(false);
-        }
-        function chooseFlowPlusZone2(){
-          const flow = (typeof window.GFM_FLOW_GENERATE==='function') ? window.GFM_FLOW_GENERATE() : ["Flow generator unavailable."];
-          const lines = ["Flow (~20 min):", ...flow, "", "Then: 30 min Zone 2 cardio (run/bike/row)"];
-          const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Flow + Zone 2' } };
-          lsSet(`current:recovery`, recSession);
-          setSession(recSession);
-          setElapsed(0); setRunning(false);
-        }
-        function chooseZone2Only(){
-          const lines = ["Zone 2 only:", "* Do 30 min continuous Zone 2 cardio (run, bike, row, etc.)."];
-          const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Zone 2' } };
-          lsSet(`current:recovery`, recSession);
-          setSession(recSession);
-          setElapsed(0); setRunning(false);
-        }
+      useEffect(()=>{
+        const cur=lsGet(currentKey(modality),null);
+        setSession(cur);
+        setElapsed(0); setRunning(false);
+      },[modality]);
 
-        /* ====== B6E test state ====== */
-        const [testChecks, setTestChecks] = useState({});
-        const [testPassed, setTestPassed] = useState(false);
+      function toggleDark(){ document.documentElement.classList.toggle('dark'); }
 
-        function submitTestResult(){
-          const isKB = (session?.meta?.modality === 'kettlebell_test');
-          const total = isKB ? KB_TEST_ITEMS.length : BB_TEST_ITEMS.length;
-          const passed = Object.values(testChecks).filter(Boolean).length;
+      function lockToday(routeChosen){
+        lsSet("recovery:stamp", todayStr());
+        lsSet("recovery:lastRoute", routeChosen);
+      }
+      function decideGate(total){
+        if(total>=11) return "train";
+        if(total>=7)  return "recovery";
+        return "fullrest";
+      }
+      function handleGateConfirm(){
+        const routeChosen = decideGate(recovery.total||0);
+        lockToday(routeChosen);
+        setRoute(routeChosen);
+      }
+      function handleGateSkip(){
+        lockToday("train");
+        setRoute("train");
+      }
 
-          // log test to history
-          const histKey = `history:${isKB ? 'kettlebell_test' : 'barbell_test'}`;
-          const arr = lsGet(histKey, []);
-          arr.push({
-            saved_at: new Date().toISOString(),
-            meta: session.meta,
-            main: session.main,
-            passed, total
-          });
-          lsSet(histKey, arr);
-
-          if(passed === total){
-            setTestPassed(true); // show choice buttons
-          } else {
-            // FAIL => next phase or repeat phase 3 (b6E), same cycle & weight
-            const eng = isKB ? SFG : SFL;
-            if(eng.current_phase < 3){
-              eng.current_phase += 1;  // 1→2 or 2→3
-            } else {
-              eng.current_phase = 3;    // repeat phase 3
-            }
-            eng.session_count = 0;
-            eng.exercise_usage_count = {};
-            eng.last_session_exercises = [];
-            eng.last_session_volumes = {};
-            eng.all_sessions = [];
-            eng.persist();
-
-            try{ localStorage.removeItem(`current:${isKB?'kettlebell_test':'barbell_test'}`); }catch(e){}
-            const next = eng.generate_single_session();
-            next.meta.modality = isKB ? 'kettlebell' : 'barbell';
-            lsSet(`current:${next.meta.modality}`, next);
-            setSession(next);
-            setTestChecks({});
-            setTestPassed(false);
-          }
+      function restartSelected(){
+        if(session && session.meta && ['hiit','recovery','breathing','warmup','kettlebell_test','barbell_test'].includes(session.meta.modality)){
+          try{localStorage.removeItem(currentKey(session.meta.modality));}catch(e){}
         }
-        function startNewCycle(){
-          const isKB = (session?.meta?.modality === 'kettlebell_test');
-          const eng = isKB ? SFG : SFL;
-          if(typeof eng.startNewCycle === 'function'){
-            eng.startNewCycle();
-          } else {
-            eng.display_cycle_index = (eng.display_cycle_index||1) + 1;
-            eng.current_phase = 1;
-            eng.session_count = 0;
-            eng.exercise_usage_count = {};
-            eng.last_session_exercises = [];
-            eng.last_session_volumes = {};
-            eng.all_sessions = [];
-            eng.persist();
-          }
-          try{ localStorage.removeItem(`current:${isKB?'kettlebell_test':'barbell_test'}`); }catch(e){}
-          const next = eng.generate_single_session();
-          next.meta.modality = isKB ? 'kettlebell' : 'barbell';
-          lsSet(`current:${next.meta.modality}`, next);
-          setSession(next);
-          setTestChecks({});
-          setTestPassed(false);
-        }
-        function continueThisCycle(){
-          const isKB = (session?.meta?.modality === 'kettlebell_test');
+        const eng=engineFor(modality);
+        eng.hardResetToStart();
+        try{localStorage.removeItem(currentKey(modality));}catch(e){}
+        setSession(null); setElapsed(0); setRunning(false);
+        alert('Reset to 1.1.1 for '+modality);
+      }
+      function generateCycle(){
+        const eng=engineFor(modality);
+        eng.hardResetToStart();
+        const s=eng.generate_single_session();
+        s.meta.modality=modality;
+        lsSet(currentKey(modality),s);
+        setSession(s);
+        setElapsed(0); setRunning(false);
+      }
+      function saveToHistory(s, mod){
+        const m = mod || modality;
+        const arr=lsGet(historyKey(m),[]);
+        arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:s.main, meta:s.meta });
+        lsSet(historyKey(m),arr);
+      }
+      function updatePerformance(perf){
+        if(!session) return;
+        const next = { ...session, meta: { ...session.meta, performance: perf } };
+        lsSet(`current:${session.meta?.modality || modality}`, next);
+        setSession(next);
+      }
+
+      function pinInferno(target=400){
+        if(!window.HELLFIRE_GENERATE){ alert("Inferno engine unavailable"); return; }
+        const out = window.HELLFIRE_GENERATE(target);
+        const hiitSession = { main: out.lines, meta: { modality:'hiit', su: out.su||target, date: new Date().toISOString() } };
+        lsSet(currentKey('hiit'), hiitSession);
+        setModality('hiit');
+        setSession(hiitSession);
+        setElapsed(0); setRunning(false);
+      }
+      function openHiitChooser(){ pinInferno(400); }
+
+      function openWarmup(){
+        const lines = [
+          "Warm-up — do between 10 reps and your age per movement",
+          "",
+          "* Three-Way Neck",
+          "* Fingers and Wrists",
+          "* Elbow Circles",
+          "* Kettlebell Halo",
+          "* Egyptian",
+          "* Hip Circles",
+          "* Knee Circles",
+          "* Toes, Feet, and Ankles",
+          "* Crocodile Breathing",
+          "* Prying Cobra / Down Dog",
+          "* Cat-Camel (McGill)",
+          "* Frog",
+          "* Tug-of-War Squats"
+        ];
+        const wSession = { main: lines, meta: { modality:'warmup', date:new Date().toISOString() } };
+        lsSet(currentKey('warmup'), wSession);
+        setSession(wSession);
+        setElapsed(0); setRunning(false);
+      }
+
+      function chooseMobility(){
+        const lines = [
+          "Mobility — do 5–10 smooth reps per movement",
+          "",
+          "Hips",
+          "* Figure 4 position",
+          "* Figure 4 lunge",
+          "* Half heel sit",
+          "* Z position switches & Z position side roll",
+          "* Hip Openers – Prone → TGU → Bridge",
+          "",
+          "Shoulders",
+          "* The Egyptian (Seated, Pike, Prone)",
+          "* S movement (Seated, Pike, Prone)",
+          "* Figure 8 in Crawl (6-point & 4-point)",
+          "* Crawl → Crab",
+          "* Pike → Tabletop",
+          "",
+          "Ankles",
+          "* Ankle series (Up & down, In & out, Rotations)",
+          "* Figure 8’s (toes & ankle)",
+          "* Snail",
+          "* Crawl → Frog → Crab transitions",
+          "",
+          "Spine & Neck",
+          "* Supine neck rolls (L ↔ R)",
+          "* Hand on knee rolling",
+          "* Segmental rolling (Neck, arms & legs)",
+          "* Forward & backward rolling",
+          "",
+          "Wrists",
+          "* Finger waves",
+          "* Hand circles",
+          "* Teapot"
+        ];
+        const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Mobility' } };
+        lsSet(`current:recovery`, recSession);
+        setSession(recSession);
+        setElapsed(0); setRunning(false);
+      }
+      function chooseFlowPlusZone2(){
+        const flow = ["1) Rockback → Head Nod","2) Seated S Switch","3) Half-kneeling Halo","4) Tall-kneeling Bow & Arrow","5) Beast to Crab","6) Side Sit → Shin Box Switch","7) Seated Egyptian","8) Crawl → Crab","9) Pike → Tabletop → Crab","10) Prone Swimmer"];
+        const lines = ["Flow (~20 min):", ...flow, "", "Then: 30 min Zone 2 cardio (run/bike/row)"];
+        const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Flow + Zone 2' } };
+        lsSet(`current:recovery`, recSession);
+        setSession(recSession);
+        setElapsed(0); setRunning(false);
+      }
+      function chooseZone2Only(){
+        const lines = ["Zone 2 only:", "* Do 30 min continuous Zone 2 cardio (run, bike, row, etc.)."];
+        const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Zone 2' } };
+        lsSet(`current:recovery`, recSession);
+        setSession(recSession);
+        setElapsed(0); setRunning(false);
+      }
+
+      const [testChecks, setTestChecks] = useState({});
+      const [testPassed, setTestPassed] = useState(false);
+
+      function submitTestResult(){
+        const isKB = (session?.meta?.modality === 'kettlebell_test');
+        const total = isKB ? KB_TEST_ITEMS.length : BB_REVIEW_ITEMS.length;
+        const passed = Object.values(testChecks).filter(Boolean).length;
+
+        const histKey = `history:${isKB ? 'kettlebell_test' : 'barbell_test'}`;
+        const arr = lsGet(histKey, []);
+        arr.push({ saved_at: new Date().toISOString(), meta: session.meta, main: session.main, passed, total });
+        lsSet(histKey, arr);
+
+        if(passed === total){
+          setTestPassed(true);
+        } else {
           const eng = isKB ? SFG : SFL;
           if(eng.current_phase < 3){
             eng.current_phase += 1;
           } else {
-            eng.current_phase = 3; // repeat
+            eng.current_phase = 3; // hold
           }
           eng.session_count = 0;
           eng.exercise_usage_count = {};
@@ -984,150 +830,161 @@
           setTestChecks({});
           setTestPassed(false);
         }
+      }
+      function startNewCycle(){
+        const isKB = (session?.meta?.modality === 'kettlebell_test');
+        const eng = isKB ? SFG : SFL;
+        eng.startNewCycle?.();
+        try{ localStorage.removeItem(`current:${isKB?'kettlebell_test':'barbell_test'}`); }catch(e){}
+        const next = eng.generate_single_session();
+        next.meta.modality = isKB ? 'kettlebell' : 'barbell';
+        lsSet(`current:${next.meta.modality}`, next);
+        setSession(next);
+        setTestChecks({});
+        setTestPassed(false);
+      }
+      function continueThisCycle(){
+        const isKB = (session?.meta?.modality === 'kettlebell_test');
+        const eng = isKB ? SFG : SFL;
+        if(eng.current_phase < 3){
+          eng.current_phase += 1;
+        } else {
+          eng.current_phase = 3;
+        }
+        eng.session_count = 0;
+        eng.exercise_usage_count = {};
+        eng.last_session_exercises = [];
+        eng.last_session_volumes = {};
+        eng.all_sessions = [];
+        eng.persist();
 
-        function completeSession(){
-          if(!session) return;
-          setRunning(false);
-          const metaMod = session.meta?.modality;
+        try{ localStorage.removeItem(`current:${isKB?'kettlebell_test':'barbell_test'}`); }catch(e){}
+        const next = eng.generate_single_session();
+        next.meta.modality = isKB ? 'kettlebell' : 'barbell';
+        lsSet(`current:${next.meta.modality}`, next);
+        setSession(next);
+        setTestChecks({});
+        setTestPassed(false);
+      }
 
-          // Warm-up: not saved
-          if(metaMod==='warmup'){
-            try{localStorage.removeItem(currentKey('warmup'));}catch(e){};
-            setSession(null);
-            alert("Warm-up closed.");
-            return;
-          }
+      function completeSession(){
+        if(!session) return;
+        setRunning(false);
+        const metaMod = session.meta?.modality;
 
-          // Specials
-          if(['hiit','recovery'].includes(metaMod)){
-            try{localStorage.removeItem(currentKey(metaMod));}catch(e){};
-            const histKeySpecial = historyKey(metaMod);
-            const arr = lsGet(histKeySpecial,[]);
-            arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:session.main, meta:session.meta });
-            lsSet(histKeySpecial, arr);
-            setSession(null);
-            alert(`${metaMod==='hiit'?'Inferno':'Active Recovery'} saved to history.`);
-            return;
-          }
-
-          // Save main
-          saveToHistory(session, metaMod || modality);
-
-          // End-of-phase → pin Test Day (KB/BB only)
-          if (session?.meta?.phase_end && (modality==='kettlebell' || modality==='barbell')){
-            if(modality==='kettlebell'){
-              const t = buildKbTestSession();
-              lsSet('current:kettlebell_test', t);
-              setSession(t);
-              setTestChecks({});
-              setTestPassed(false);
-              return;
-            }
-            if(modality==='barbell'){
-              const t = buildBbTestSession();
-              lsSet('current:barbell_test', t);
-              setSession(t);
-              setTestChecks({});
-              setTestPassed(false);
-              return;
-            }
-          }
-
-          // Next main
-          const eng=engineFor(modality);
-          const s=eng.generate_single_session();
-          s.meta.modality=modality;
-          lsSet(currentKey(modality),s);
-          setSession(s);
-          setElapsed(0);
+        if(metaMod==='warmup'){
+          try{localStorage.removeItem(currentKey('warmup'));}catch(e){};
+          setSession(null);
+          alert("Warm-up closed.");
+          return;
+        }
+        if(['hiit','recovery'].includes(metaMod)){
+          try{localStorage.removeItem(currentKey(metaMod));}catch(e){};
+          const histKeySpecial = historyKey(metaMod);
+          const arr = lsGet(histKeySpecial,[]);
+          arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:session.main, meta:session.meta });
+          lsSet(histKeySpecial, arr);
+          setSession(null);
+          alert(`${metaMod==='hiit'?'Inferno':'Active Recovery'} saved to history.`);
+          return;
         }
 
-        // gate screen (full-screen)
-        if (recoveryMode==="gate" && route==="gate") {
-          return (
-            <div className="mx-auto w-full max-w-md md:max-w-2xl min-h-screen flex items-start pt-4">
-              <div className="w-full px-4">
-                <div className="text-center mb-3">
-                  <h1 className="text-3xl font-bold">EverStrong</h1>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">Daily Recovery Check</p>
-                </div>
-                <RecoveryGate
-                  recovery={recovery}
-                  setRecovery={setRecovery}
-                  onConfirm={handleGateConfirm}
-                  onSkip={handleGateSkip}
-                />
-                <p className="text-[11px] text-center text-gray-500 mt-3">You’ll see training options after you confirm.</p>
-              </div>
-            </div>
-          );
+        saveToHistory(session, metaMod || modality);
+
+        if (session?.meta?.phase_end && (modality==='kettlebell' || modality==='barbell')){
+          if(modality==='kettlebell'){
+            const t = buildKbTestSession();
+            lsSet('current:kettlebell_test', t);
+            setSession(t);
+            setTestChecks({});
+            setTestPassed(false);
+            return;
+          }
+          if(modality==='barbell'){
+            const t = buildBbReviewSession();
+            lsSet('current:barbell_test', t);
+            setSession(t);
+            setTestChecks({});
+            setTestPassed(false);
+            return;
+          }
         }
 
-        const hasPinned = !!session;
-        const isHIIT = modality==='hiit';
+        const eng=engineFor(modality);
+        const s=eng.generate_single_session();
+        s.meta.modality=modality;
+        lsSet(currentKey(modality),s);
+        setSession(s);
+        setElapsed(0);
+      }
 
+      if (recoveryMode==="gate" && route==="gate") {
         return (
-          <div className="mx-auto w-full max-w-md md:max-w-2xl">
-            <Header
-              onHiit={openHiitChooser}
-              onToggleDark={toggleDark}
-              onRestart={restartSelected}
-              recoveryMode={recoveryMode}
-              setRecoveryMode={setRecoveryMode}
-            />
-
-            {/* Inline Recovery bar + choices */}
-            {recoveryMode==="inline" && (
-              <div className="p-4 card mb-4">
-                <p className="font-semibold mb-2">Recovery Check</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
-                  {[
-                    ['sleep','Sleep'],['energy','Energy'],['body','Body']
-                  ].map(([k,l])=>(
-                    <div key={k} className="flex items-center gap-3">
-                      <span className="w-16">{l}</span>
-                      <input type="range" min="0" max="5" value={recovery[k]} className="w-full h-4"
-                        onChange={e=>{
-                          const next={...recovery,[k]:parseInt(e.target.value,10)};
-                          next.total=next.sleep+next.energy+next.body;
-                          next.gate=next.total>=11?'TRAIN':next.total>=7?'ACTIVE RECOVERY':'FULL REST';
-                          setRecovery(next);
-                        }}/>
-                      <span className="w-6 text-center">{recovery[k]}</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
-                {recovery.total>=7 && recovery.total<=10 && (
-                  <>
-                    <p className="text-xs text-gray-400 mt-3">Active Recovery — Choose:</p>
-                    <div className="flex flex-col gap-2 mt-2">
-                      <button className="btn bg-gray-700 w-full" onClick={chooseMobility}>Mobility</button>
-                      <button className="btn bg-gray-700 w-full" onClick={chooseFlowPlusZone2}>Flow + Zone 2</button>
-                      <button className="btn bg-gray-700 w-full" onClick={chooseZone2Only}>Zone 2</button>
-                    </div>
-                  </>
-                )}
+          <div className="mx-auto w-full max-w-md md:max-w-2xl min-h-screen flex items-start pt-4">
+            <div className="w-full px-4">
+              <div className="text-center mb-3">
+                <h1 className="text-3xl font-bold">EverStrong</h1>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Daily Recovery Check</p>
               </div>
-            )}
+              <RecoveryGate
+                recovery={recovery}
+                setRecovery={setRecovery}
+                onConfirm={handleGateConfirm}
+                onSkip={handleGateSkip}
+              />
+              <p className="text-[11px] text-center text-gray-500 mt-3">You’ll see training options after you confirm.</p>
+            </div>
+          </div>
+        );
+      }
 
-            {/* Gate recovery-choice surface when route==='recovery' */}
-            {(recoveryMode==='gate' && route==='recovery') && (
-              <div className="p-4 card mb-4">
-                <p className="font-semibold mb-2">Active Recovery — Choose</p>
-                <div className="flex flex-col gap-2">
-                  <button className="btn bg-gray-700 w-full" onClick={chooseMobility}>Mobility</button>
-                  <button className="btn bg-gray-700 w-full" onClick={chooseFlowPlusZone2}>Flow + Zone 2</button>
-                  <button className="btn bg-gray-700 w-full" onClick={chooseZone2Only}>Zone 2</button>
-                </div>
+      const hasPinned = !!session;
+      const isHIIT = session?.meta?.modality==='hiit';
+
+      return (
+        <div className="mx-auto w-full max-w-md md:max-w-2xl">
+          <Header
+            onHiit={openHiitChooser}
+            onToggleDark={toggleDark}
+            onRestart={restartSelected}
+            recoveryMode={recoveryMode}
+            setRecoveryMode={setRecoveryMode}
+          />
+
+          {recoveryMode==="inline" && (
+            <div className="p-4 card mb-4">
+              <p className="font-semibold mb-2">Recovery Check</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+                {[
+                  ['sleep','Sleep'],['energy','Energy'],['body','Body']
+                ].map(([k,l])=>(
+                  <div key={k} className="flex items-center gap-3">
+                    <span className="w-16">{l}</span>
+                    <input type="range" min="0" max="5" value={recovery[k]} className="w-full h-4"
+                      onChange={e=>{
+                        const next={...recovery,[k]:parseInt(e.target.value,10)};
+                        next.total=next.sleep+next.energy+next.body;
+                        next.gate=next.total>=11?'TRAIN':next.total>=7?'ACTIVE RECOVERY':'FULL REST';
+                        setRecovery(next);
+                      }}/>
+                    <span className="w-6 text-center">{recovery[k]}</span>
+                  </div>
+                ))}
               </div>
-            )}
-
-            {/* Full Rest → show breathing options only (no timer, not saved) */}
-            {(recoveryMode==='gate' && route==='fullrest') && (
-              <div className="p-4 card mb-4">
-                <p className="font-semibold mb-2">Rest Day — Breathing (Bottom Triangle)</p>
-                <div className="space-y-2">
+              <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
+              {recovery.total>=7 && recovery.total<=10 && (
+                <>
+                  <p className="text-xs text-gray-400 mt-3">Active Recovery — Choose:</p>
+                  <div className="flex flex-col gap-2 mt-2">
+                    <button className="btn bg-gray-700 w-full" onClick={chooseMobility}>Mobility</button>
+                    <button className="btn bg-gray-700 w-full" onClick={chooseFlowPlusZone2}>Flow + Zone 2</button>
+                    <button className="btn bg-gray-700 w-full" onClick={chooseZone2Only}>Zone 2</button>
+                  </div>
+                </>
+              )}
+              {recovery.total<7 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-gray-400">Rest Day — Breathing (Bottom Triangle). Choose one and practice 5–20 minutes:</p>
                   {REST_BREATHING_OPTIONS.map((opt, idx)=>(
                     <div key={idx} className="p-3 rounded bg-gray-800">
                       <p className="font-medium">{opt.level} — {opt.name}</p>
@@ -1136,117 +993,166 @@
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Modality toggles */}
-            <ModalityToggles
-              modality={isHIIT?'bodyweight':modality}
-              setModality={m=>{ if(m==='hiit')return; setModality(m); }}
-              lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
-            />
-
-            {/* Actions: ONLY Generate Cycle when nothing pinned (no HIIT buttons here) */}
-            <div className="p-4 card mb-4">
-              <div className="flex flex-col gap-2">
-                {!hasPinned && (
-                  <button onClick={generateCycle} className="btn bg-blue-600 w-full">
-                    Generate Cycle (start at 1.1.1)
-                  </button>
-                )}
-                {/* Warm-up quick link */}
-                <button onClick={openWarmup} className="btn bg-emerald-700 w-full">
-                  Warm-up
-                </button>
-              </div>
-            </div>
-
-            {/* Test view or normal session */}
-            {session && (session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test')
-              ? (
-                <TestView
-                  modality={session.meta.modality==='kettlebell_test' ? 'kettlebell' : 'barbell'}
-                  testChecks={testChecks}
-                  setTestChecks={setTestChecks}
-                  testPassed={testPassed}
-                  onSubmit={submitTestResult}
-                  onStartNewCycle={startNewCycle}
-                  onContinueCycle={continueThisCycle}
-                />
-              ) : (
-                <SessionView session={session}/>
-              )
-            }
-
-            {/* Under the pinned session: buttons */}
-            <div className="flex gap-2 mb-4">
-              {session?.meta?.modality==='warmup' ? (
-                <button
-                  onClick={()=>{ try{localStorage.removeItem(`current:warmup`);}catch(e){}; setSession(null); }}
-                  className="btn-sm bg-gray-600 w-full"
-                  title="Close warm-up (not saved)"
-                >
-                  Close Warm-up
-                </button>
-              ) : session && (session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test') ? (
-                <button
-                  onClick={()=>{ setSession(null); }}
-                  className="btn-sm bg-gray-600 w-full"
-                  title="Close test view (pinned test remains until submitted)"
-                >
-                  Close Test View
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={completeSession}
-                    className="btn-sm bg-green-600 w-1/2"
-                    disabled={!session}
-                    title={!session ? "No pinned session" : "Save this session"}
-                  >
-                    Complete
-                  </button>
-                  {session?.meta?.modality!=='warmup' && (
-                    <button
-                      onClick={openWarmup}
-                      className="btn-sm bg-emerald-700 w-1/2"
-                      title="Open fixed warm-up routine (not saved)"
-                    >
-                      Warm-up
-                    </button>
-                  )}
-                </>
               )}
             </div>
+          )}
 
-            {session && !['warmup','breathing','recovery','kettlebell_test','barbell_test','hiit'].includes(session?.meta?.modality) && (
-              <PerformanceForm session={session} onChange={updatePerformance}/>
-            )}
-            <Timer elapsed={elapsed} setElapsed={setElapsed} running={running} setRunning={setRunning} />
-
-            {/* History tabs */}
-            <History modality={(session && session.meta && session.meta.modality) ? session.meta.modality : (isHIIT?'hiit':modality)} />
-
-            {/* Export */}
+          {(recoveryMode==='gate' && route==='fullrest') && (
             <div className="p-4 card mb-4">
-              <p className="font-semibold mb-2">Export & Maintenance</p>
-              <div className="flex flex-col md:flex-row gap-2">
-                <button className="btn bg-gray-700 w-full" onClick={exportJSON}>Export JSON</button>
-                <button className="btn bg-gray-700 w-full" onClick={exportCSV}>Export CSV</button>
-                <button className="btn bg-red-700 w-full" onClick={clearAllHistory} title="Delete all history across all modalities">Reset History (All)</button>
+              <p className="font-semibold mb-2">Rest Day — Breathing (Bottom Triangle)</p>
+              <div className="space-y-2">
+                {REST_BREATHING_OPTIONS.map((opt, idx)=>(
+                  <div key={idx} className="p-3 rounded bg-gray-800">
+                    <p className="font-medium">{opt.level} — {opt.name}</p>
+                    <p className="text-sm">{opt.pattern}</p>
+                    <p className="text-xs italic">{opt.note}</p>
+                  </div>
+                ))}
               </div>
-              <p className="text-xs text-gray-400 mt-2">“Reset History” removes ALL history: kettlebell, barbell, bodyweight, hiit, recovery, breathing and test logs.</p>
             </div>
+          )}
 
-            <footer className="text-xs text-center mt-6 text-gray-400 pb-[calc(env(safe-area-inset-bottom)+8px)]">
-              Kettlebell • Barbell • Bodyweight • Inferno • Warm-up • Recovery • Breathing
-            </footer>
+          <ModalityToggles
+            modality={isHIIT?'bodyweight':modality}
+            setModality={m=>{ if(m==='hiit')return; setModality(m); }}
+            lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
+          />
+
+          <div className="p-4 card mb-4">
+            <div className="flex flex-col gap-2">
+              {!hasPinned && (
+                <button onClick={generateCycle} className="btn bg-blue-600 w-full">
+                  Generate Cycle (start at 1.1.1)
+                </button>
+              )}
+              <button onClick={openWarmup} className="btn bg-emerald-700 w-full">
+                Warm-up
+              </button>
+              {isHIIT && (
+                <div className="flex flex-col md:flex-row gap-2">
+                  {[300,400,500].map(val=>(
+                    <button key={val} onClick={()=>pinInferno(val)} className="btn bg-indigo-600 w-full">
+                      New Inferno {val}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        );
-      }
 
-      ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-    </script>
-  </body>
+          {session && (session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test')
+            ? (
+              <TestView
+                modality={session.meta.modality==='kettlebell_test' ? 'kettlebell' : 'barbell'}
+                testChecks={testChecks}
+                setTestChecks={setTestChecks}
+                testPassed={testPassed}
+                onSubmit={submitTestResult}
+                onStartNewCycle={startNewCycle}
+                onContinueCycle={continueThisCycle}
+              />
+            ) : (
+              <SessionView session={session}/>
+            )
+          }
+
+          <div className="flex gap-2 mb-4">
+            {session?.meta?.modality==='warmup' ? (
+              <button
+                onClick={()=>{ try{localStorage.removeItem(`current:warmup`);}catch(e){}; setSession(null); }}
+                className="btn-sm bg-gray-600 w-full"
+                title="Close warm-up (not saved)"
+              >
+                Close Warm-up
+              </button>
+            ) : session && (session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test') ? (
+              <button
+                onClick={()=>{ setSession(null); }}
+                className="btn-sm bg-gray-600 w-full"
+                title="Close test view (pinned test remains until submitted)"
+              >
+                Close Test View
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={completeSession}
+                  className="btn-sm bg-green-600 w-1/2"
+                  disabled={!session}
+                  title={!session ? "No pinned session" : "Save this session"}
+                >
+                  Complete
+                </button>
+                {session?.meta?.modality!=='warmup' && (
+                  <button
+                    onClick={openWarmup}
+                    className="btn-sm bg-emerald-700 w-1/2"
+                    title="Open fixed warm-up routine (not saved)"
+                  >
+                    Warm-up
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+
+          {session && !['warmup','breathing','recovery','kettlebell_test','barbell_test','hiit'].includes(session?.meta?.modality) && (
+            <PerformanceForm session={session} onChange={updatePerformance}/>
+          )}
+          <Timer elapsed={elapsed} setElapsed={setElapsed} running={running} setRunning={setRunning} />
+
+          <History modality={(session && session.meta && session.meta.modality) ? session.meta.modality : modality} />
+
+          <div className="p-4 card mb-4">
+            <p className="font-semibold mb-2">Export & Maintenance</p>
+            <div className="flex flex-col md:flex-row gap-2">
+              <button className="btn bg-gray-700 w-full" onClick={exportJSON}>Export JSON</button>
+              <button className="btn bg-gray-700 w-full" onClick={exportCSV}>Export CSV</button>
+              <button className="btn bg-red-700 w-full" onClick={clearAllHistory} title="Delete all history across all modalities">Reset History (All)</button>
+            </div>
+          </div>
+
+          <footer className="text-xs text-center mt-6 text-gray-400 pb-[calc(env(safe-area-inset-bottom)+8px)]">
+            Kettlebell • Barbell • Bodyweight • Inferno • Warm-up • Recovery • Breathing
+          </footer>
+        </div>
+      );
+    }
+
+    function PerformanceForm({ session, onChange }){
+      const m = session?.meta || {};
+      const perf = m.performance || { load:"", rpe:"", notes:"" };
+      const isStrength = ["kettlebell","barbell","bodyweight"].includes(m.modality);
+      if(!isStrength) return null;
+      return (
+        <div className="p-4 card mb-4">
+          <p className="font-semibold mb-2">Performance</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <div>
+              <label className="text-xs text-gray-400">Load</label>
+              <input className="w-full px-2 py-1 rounded bg-gray-800"
+                     value={perf.load}
+                     onChange={e=>onChange({...perf, load:e.target.value})}/>
+            </div>
+            <div>
+              <label className="text-xs text-gray-400">RPE (1–10)</label>
+              <input className="w-full px-2 py-1 rounded bg-gray-800"
+                     type="number" min="1" max="10"
+                     value={perf.rpe}
+                     onChange={e=>onChange({...perf, rpe:e.target.value})}/>
+            </div>
+            <div className="md:col-span-3">
+              <label className="text-xs text-gray-400">Notes</label>
+              <textarea className="w-full px-2 py-1 rounded bg-gray-800" rows="3"
+                        value={perf.notes}
+                        onChange={e=>onChange({...perf, notes:e.target.value})}/>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
 </html>
-
