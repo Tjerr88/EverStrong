@@ -118,7 +118,8 @@
                 session:session_number, pattern, exercise, volume_type, volume,
                 formatted_volume, order:session_exercises.length+1, phase:this.current_phase, display_cycle:this.display_cycle_index
               });
-              this.exercise_usage_count[exercise]=(this.exercise_usage_count[ex]||0)+1;
+              // BUGFIX: correct key (no 'ex' typo)
+              this.exercise_usage_count[exercise] = (this.exercise_usage_count[exercise] || 0) + 1;
               current_session_volumes[pattern]=volume_type;
             }
 
@@ -189,7 +190,7 @@
         sessionsPerCycle:18
       });
 
-      /* ========== Inferno (300/400/500 SU) =========== */
+      /* ========== Inferno (300/400/500 SU) ========== */
       (function(){
         const db = {
           squat: [
@@ -224,7 +225,7 @@
           ]
         };
         function r(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-        function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+        function pick(a){ return a[Math.floor(Math.random()*(a.length))]; }
         function shuffle(a){ const x=a.slice(); for(let i=x.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [x[i],x[j]]=[x[j],x[i]]; } return x; }
         function fmt(ex, su){ const reps = Math.round(su / ex.stim); return `${ex.name} — ${ex.uni?`${reps} reps (${Math.ceil(reps/2)} per arm)`:`${reps} reps`} (${su} SU)`; }
         function build(targetSU){
@@ -659,11 +660,11 @@
             m.minutes??"",
             m.performance?.load||"",
             m.performance?.rpe||"",
-            m.performance?.notes? m.performance.notes.replace(/\n/g,' ') : "",
+            m.performance?.notes? m.performance.notes.replace(/\\n/g,' ') : "",
             (r.main||[]).join(" | ")
           ].map(esc).join(","));
         });
-        return out.join("\n");
+        return out.join("\\n");
       }
       function exportCSV(){
         const all = collectAllHistory();
@@ -675,6 +676,18 @@
         a.href = url; a.download = `everstrong-history-${new Date().toISOString().slice(0,10)}.csv`;
         document.body.appendChild(a); a.click(); a.remove();
         URL.revokeObjectURL(url);
+      }
+      function clearAllHistory(){
+        if(!confirm("This will permanently delete ALL history (all modalities, tests, specials). Continue?")) return;
+        const keysToDelete = [];
+        for(let i=0;i<localStorage.length;i++){
+          const k = localStorage.key(i);
+          if(k && k.startsWith('history:')){
+            keysToDelete.push(k);
+          }
+        }
+        keysToDelete.forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+        alert("All history cleared.");
       }
 
       /* ========== App ========== */
@@ -704,8 +717,6 @@
         useEffect(()=>{
           if(recoveryMode === "gate"){ setRoute("gate"); }
         },[recoveryMode]);
-
-        const [activeRecoveryChoice, setActiveRecoveryChoice] = useState(null);
 
         const [lastModalityStored, setLastModalityStored] = useState(lsGet("last_modality", null));
         const lastModalityVisual = useMemo(()=>{
@@ -738,7 +749,6 @@
           const routeChosen = decideGate(recovery.total||0);
           lockToday(routeChosen);
           setRoute(routeChosen);
-          setActiveRecoveryChoice(null);
         }
         function handleGateSkip(){
           lockToday("train");
@@ -790,7 +800,13 @@
         function openHiitChooser(){
           setModality('hiit');
           const existing=lsGet(currentKey('hiit'),null);
-          setSession(existing);
+          if(existing){ setSession(existing); } else {
+            // offer quick choices (pin a generated one)
+            const out = window.HELLFIRE_GENERATE ? window.HELLFIRE_GENERATE(400) : {lines:["HIIT unavailable"], su:400};
+            const hiitSession = { main: out.lines, meta: { modality:'hiit', su: out.su, date: new Date().toISOString() } };
+            lsSet(currentKey('hiit'), hiitSession);
+            setSession(hiitSession);
+          }
           setElapsed(0); setRunning(false);
         }
 
@@ -899,7 +915,7 @@
           if(passed === total){
             setTestPassed(true); // show choice buttons
           } else {
-            // FAIL => next phase or repeat phase 3 (b6E)
+            // FAIL => next phase or repeat phase 3 (b6E), same cycle & weight
             const eng = isKB ? SFG : SFL;
             if(eng.current_phase < 3){
               eng.current_phase += 1;  // 1→2 or 2→3
@@ -976,28 +992,28 @@
 
           // Warm-up: not saved
           if(metaMod==='warmup'){
-            try{localStorage.removeItem(currentKey('warmup'));}catch(e){}
+            try{localStorage.removeItem(currentKey('warmup'));}catch(e){};
             setSession(null);
             alert("Warm-up closed.");
             return;
           }
 
           // Specials
-          if(['hiit','recovery','breathing'].includes(metaMod)){
-            try{localStorage.removeItem(currentKey(metaMod));}catch(e){}
+          if(['hiit','recovery'].includes(metaMod)){
+            try{localStorage.removeItem(currentKey(metaMod));}catch(e){};
             const histKeySpecial = historyKey(metaMod);
             const arr = lsGet(histKeySpecial,[]);
             arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:session.main, meta:session.meta });
             lsSet(histKeySpecial, arr);
             setSession(null);
-            alert(`${metaMod==='hiit'?'Inferno':metaMod==='recovery'?'Active Recovery':'Breathing'} saved to history.`);
+            alert(`${metaMod==='hiit'?'Inferno':'Active Recovery'} saved to history.`);
             return;
           }
 
           // Save main
           saveToHistory(session, metaMod || modality);
 
-          // End-of-phase → pin Test Day (no prompts)
+          // End-of-phase → pin Test Day (KB/BB only)
           if (session?.meta?.phase_end && (modality==='kettlebell' || modality==='barbell')){
             if(modality==='kettlebell'){
               const t = buildKbTestSession();
@@ -1107,7 +1123,7 @@
               </div>
             )}
 
-            {/* Full Rest → show breathing options only */}
+            {/* Full Rest → show breathing options only (no timer, not saved) */}
             {(recoveryMode==='gate' && route==='fullrest') && (
               <div className="p-4 card mb-4">
                 <p className="font-semibold mb-2">Rest Day — Breathing (Bottom Triangle)</p>
@@ -1210,15 +1226,16 @@
 
             {/* History tabs */}
             <History modality={(session && session.meta && session.meta.modality) ? session.meta.modality : (isHIIT?'hiit':modality)} />
-            <History modality="breathing" />
 
             {/* Export */}
             <div className="p-4 card mb-4">
-              <p className="font-semibold mb-2">Export</p>
-              <div className="flex gap-2">
+              <p className="font-semibold mb-2">Export & Maintenance</p>
+              <div className="flex flex-col md:flex-row gap-2">
                 <button className="btn bg-gray-700 w-full" onClick={exportJSON}>Export JSON</button>
                 <button className="btn bg-gray-700 w-full" onClick={exportCSV}>Export CSV</button>
+                <button className="btn bg-red-700 w-full" onClick={clearAllHistory} title="Delete all history across all modalities">Reset History (All)</button>
               </div>
+              <p className="text-xs text-gray-400 mt-2">“Reset History” removes ALL history: kettlebell, barbell, bodyweight, hiit, recovery, breathing and test logs.</p>
             </div>
 
             <footer className="text-xs text-center mt-6 text-gray-400 pb-[calc(env(safe-area-inset-bottom)+8px)]">
