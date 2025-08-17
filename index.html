@@ -13,11 +13,10 @@
     <style>
       :root { color-scheme: light dark; }
       body { -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
-      .card { border:1px solid rgba(255,255,255,.12); border-radius: .9rem; }
-      .btn { border-radius: .9rem; padding:.75rem 1rem; }
+      .card { border:1px solid rgba(255,255,255,.12); border-radius:.9rem; }
+      .btn { border-radius:.9rem; padding:.75rem 1rem; }
       .btn-sm { border-radius:.7rem; padding:.5rem .75rem; font-size:.9rem; }
       .safe { padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
-      a.link { text-decoration: underline; }
     </style>
   </head>
   <body class="bg-gray-100 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
@@ -119,7 +118,7 @@
                 session:session_number, pattern, exercise, volume_type, volume,
                 formatted_volume, order:session_exercises.length+1, phase:this.current_phase, display_cycle:this.display_cycle_index
               });
-              this.exercise_usage_count[exercise]=(this.exercise_usage_count[exercise]||0)+1;
+              this.exercise_usage_count[exercise]=(this.exercise_usage_count[ex]||0)+1;
               current_session_volumes[pattern]=volume_type;
             }
 
@@ -146,13 +145,8 @@
             this.persist();
           },
           startNewCycle(){
-            this.display_cycle_index = (this.display_cycle_index || 1) + 1;
-            this.current_phase = 1;
-            this.session_count = 0;
-            this.exercise_usage_count = {};
-            this.last_session_exercises = [];
-            this.last_session_volumes = {};
-            this.all_sessions = [];
+            this.display_cycle_index=(this.display_cycle_index||1)+1;
+            this.current_phase=1; this.session_count=0; this.exercise_usage_count={}; this.last_session_exercises=[]; this.last_session_volumes={}; this.all_sessions=[];
             this.persist();
           }
         };
@@ -163,39 +157,17 @@
       const SFG = createEngine({
         key:'everstrong:sfg:v1',
         patterns:{
-          "Swing Pattern": [
-            "One-Legged Deadlift", "Double Sumo Deadlift", "Single Leg Glute Bridge",
-            "One-arm Swing", "(Side Stepping) Two-arm Swing", "Double Swing"
-          ],
-          "Get Up Pattern": [
-            "(3 Min) Get Up", "Supine to Sit Up", "Windmill",
-            "Bent Press", "Supine to Half Kneel", "Half Kneel to Stand"
-          ],
-          "Clean Pattern": [
-            "HS-Plank", "Front Rack Carry", "Single Dead Clean",
-            "Double Clean", "Pull Up/Chin Up", "One-arm Row"
-          ],
-          "Squat Pattern": [
-            "B-stance Goblet Squat", "Single Front Squat", "Paused Front Squat",
-            "Double Front Squat", "Athletic Lunge", "Bottom Up Squat"
-          ],
-          "Press Pattern": [
-            "Military Press", "Top Down Press", "Half Kneeling Press",
-            "Floor Press", "Double Push Press", "Double Push Jerk"
-          ],
-          "Snatch Pattern": [
-            "Overhead Carry", "Snatch", "Low Pull Snatch",
-            "High Pull", "Front/Side Raise Snatch", "Double Snatch"
-          ],
-          "Hybrid Pattern": [
-            "Double Clean & Press", "Double Clean & Front Squat", "Double Snatch & Overhead Walk",
-            "Double Clean & Jerk", "Double Snatch & Press", "Double Front Squat & Push Press"
-          ]
+          "Swing Pattern": ["One-Legged Deadlift","Double Sumo Deadlift","Single Leg Glute Bridge","One-arm Swing","(Side Stepping) Two-arm Swing","Double Swing"],
+          "Get Up Pattern": ["(3 Min) Get Up","Supine to Sit Up","Windmill","Bent Press","Supine to Half Kneel","Half Kneel to Stand"],
+          "Clean Pattern": ["HS-Plank","Front Rack Carry","Single Dead Clean","Double Clean","Pull Up/Chin Up","One-arm Row"],
+          "Squat Pattern": ["B-stance Goblet Squat","Single Front Squat","Paused Front Squat","Double Front Squat","Athletic Lunge","Bottom Up Squat"],
+          "Press Pattern": ["Military Press","Top Down Press","Half Kneeling Press","Floor Press","Double Push Press","Double Push Jerk"],
+          "Snatch Pattern": ["Overhead Carry","Snatch","Low Pull Snatch","High Pull","Front/Side Raise Snatch","Double Snatch"],
+          "Hybrid Pattern": ["Double Clean & Press","Double Clean & Front Squat","Double Snatch & Overhead Walk","Double Clean & Jerk","Double Snatch & Press","Double Front Squat & Push Press"]
         },
         cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
         sessionsPerCycle:36
       });
-
       const SFL = createEngine({
         key:'everstrong:sfl:v1',
         patterns:{
@@ -206,7 +178,6 @@
         cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
         sessionsPerCycle:18
       });
-
       const SFB = createEngine({
         key:'everstrong:sfb:v1',
         patterns:{
@@ -218,7 +189,7 @@
         sessionsPerCycle:18
       });
 
-      /* ========== Inferno (300/400/500 SU) ========== */
+      /* ========== Inferno (300/400/500 SU) =========== */
       (function(){
         const db = {
           squat: [
@@ -253,12 +224,9 @@
           ]
         };
         function r(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-        function pick(a){ return a[Math.floor(Math.random()*(a.length))]; }
+        function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
         function shuffle(a){ const x=a.slice(); for(let i=x.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [x[i],x[j]]=[x[j],x[i]]; } return x; }
-        function fmt(ex, su){
-          const reps = Math.round(su / ex.stim);
-          return `${ex.name} — ${ex.uni?`${reps} reps (${Math.ceil(reps/2)} per arm)`:`${reps} reps`} (${su} SU)`;
-        }
+        function fmt(ex, su){ const reps = Math.round(su / ex.stim); return `${ex.name} — ${ex.uni?`${reps} reps (${Math.ceil(reps/2)} per arm)`:`${reps} reps`} (${su} SU)`; }
         function build(targetSU){
           const pats=Object.keys(db);
           const maxPer=2; let cur=0; const used=Object.fromEntries(pats.map(p=>[p,0])); const out=[];
@@ -303,85 +271,29 @@
         };
       })();
 
-      /* ========== Breathing (Full Rest) ========== */
-      const BREATH_PROTOCOLS = {
-        bottom: { key:'bottom', name:'Bottom Triangle (4–6)', best:'Relax / Recovery',
-          phases:[{label:'Inhale',secs:4},{label:'Exhale',secs:6}], summary:'Calms the nervous system, lowers HR, relaxation' },
-        box: { key:'box', name:'Box (4–4–4–4)', best:'Focus / Balance',
-          phases:[{label:'Inhale',secs:4},{label:'Hold',secs:4},{label:'Exhale',secs:4},{label:'Hold',secs:4}], summary:'Balance and focus, stress regulation' },
-        tactical: { key:'tactical', name:'Tactical (4–7–8)', best:'Sleep / Deep Relax',
-          phases:[{label:'Inhale',secs:4},{label:'Hold',secs:7},{label:'Exhale',secs:8}], summary:'Deep relaxation, supports sleep' }
-      };
-
-      function BreathTimer({ protocolKey, minutes, onDone }) {
-        const proto = BREATH_PROTOCOLS[protocolKey];
-        const [running,setRunning]=useState(true);
-        const [elapsed,setElapsed]=useState(0);
-        const total = Math.max(1, minutes)*60;
-        const [phaseIndex,setPhaseIndex]=useState(0);
-        const [phaseRemaining,setPhaseRemaining]=useState(proto.phases[0].secs);
-        const intervalRef=useRef(null);
-
-        useEffect(()=>{
-          if(!running) return;
-          intervalRef.current = setInterval(()=>{
-            setElapsed(e=>e+1);
-            setPhaseRemaining(p=>{
-              if(p>1) return p-1;
-              setPhaseIndex(i=> (i+1)%proto.phases.length );
-              return proto.phases[(phaseIndex+1)%proto.phases.length].secs;
-            });
-          },1000);
-          return ()=>{ if(intervalRef.current){ clearInterval(intervalRef.current); intervalRef.current=null; } };
-        },[running, phaseIndex, protocolKey]);
-
-        useEffect(()=>{
-          if(elapsed>=total){
-            setRunning(false);
-            if(intervalRef.current){ clearInterval(intervalRef.current); intervalRef.current=null; }
-            onDone && onDone();
-          }
-        },[elapsed,total,onDone]);
-
-        function reset(){
-          setRunning(false);
-          setElapsed(0);
-          setPhaseIndex(0);
-          setPhaseRemaining(proto.phases[0].secs);
+      /* ========== Rest Day Breathing (Bottom Triangle only) ========== */
+      const REST_BREATHING_OPTIONS = [
+        {
+          level: "Beginner",
+          name: "Bottom Triangle 4-4-4",
+          pattern: "Inhale 4s • Exhale 4s • Hold 4s (bottom)",
+          note: "Practice between 5–20 minutes."
+        },
+        {
+          level: "Intermediate",
+          name: "Bottom Triangle 4-6-8",
+          pattern: "Inhale 4s • Exhale 6s • Hold 8s (bottom)",
+          note: "Practice between 5–20 minutes."
+        },
+        {
+          level: "Advanced",
+          name: "Bottom Triangle 6-8-12",
+          pattern: "Inhale 6s • Exhale 8s • Hold 12s (bottom)",
+          note: "Practice between 5–20 minutes."
         }
+      ];
 
-        const currentPhase = proto.phases[phaseIndex];
-        const remainingTotal = Math.max(0,total - elapsed);
-
-        return (
-          <div className="p-4 card mt-3">
-            <p className="font-semibold text-lg">{proto.name} • {minutes} min</p>
-            <p className="text-sm text-gray-400">{proto.summary} — Best for: {proto.best}</p>
-            <div className="mt-4 flex items-center justify-between">
-              <div>
-                <div className="text-2xl font-mono">{currentPhase.label}</div>
-                <div className="text-3xl font-mono">{('0'+phaseRemaining).slice(-2)}s</div>
-              </div>
-              <div className="text-right">
-                <div className="text-xs text-gray-400">Total remaining</div>
-                <div className="text-2xl font-mono">{fmtHMS(remainingTotal)}</div>
-              </div>
-            </div>
-            <div className="w-full h-2 bg-gray-700 rounded mt-4 overflow-hidden">
-              <div className="h-2 bg-blue-500" style={{ width: `${100*(elapsed/total)}%` }} />
-            </div>
-            <div className="flex gap-2 mt-4">
-              {!running
-                ? <button onClick={()=>setRunning(true)} className="btn bg-green-600 w-full">Start</button>
-                : <button onClick={()=>setRunning(false)} className="btn bg-yellow-500 text-black w-full">Pause</button>}
-              <button onClick={reset} className="btn bg-gray-600 w-full">Reset</button>
-              <button onClick={()=>{ setRunning(false); onDone && onDone(); }} className="btn bg-blue-600 w-full">Finish</button>
-            </div>
-          </div>
-        );
-      }
-
-      /* ========== Smart list renderer (no stray hyphens; clean blank lines) ========== */
+      /* ========== Smart list renderer ========== */
       function renderSmartList(lines){
         const out=[]; let buffer=[];
         function flushList(){
@@ -429,7 +341,6 @@
                 </button>
               </div>
               <div className="flex gap-2">
-                <!-- HIIT alleen als extra bovenin -->
                 <button onClick={onHiit} className="text-sm text-blue-400 underline">I Feel Like HIIT Today</button>
                 <button onClick={onRestart} className="text-sm text-amber-400 underline">Restart</button>
               </div>
@@ -496,7 +407,6 @@
         const isRecovery = m.modality==='recovery';
         const isBreathing = m.modality==='breathing';
         const isWarmup = m.modality==='warmup';
-        const isKbTest = m.modality==='kettlebell_test';
         const title = isHIIT
           ? `Inferno${m.su?` • ${m.su} SU`:''}${m.date ? ` • ${new Date(m.date).toLocaleDateString()}` : ''}`
           : isRecovery
@@ -505,9 +415,7 @@
               ? `Breathing${m.minutes?` • ${m.minutes} min`:''}${m.date?` • ${new Date(m.date).toLocaleDateString()}`:''}`
               : isWarmup
                 ? `Warm-up`
-                : isKbTest
-                  ? `Kettlebell Test Day${m.date?` • ${new Date(m.date).toLocaleDateString()}`:''}`
-                  : (m.cycle && m.phase && m.session) ? `${(m.modality||'Session')[0].toUpperCase()}${(m.modality||'session').slice(1)} ${m.cycle}.${m.phase}.${m.session}` : `Today's Session`;
+                : (m.cycle && m.phase && m.session) ? `${(m.modality||'Session')[0].toUpperCase()}${(m.modality||'session').slice(1)} ${m.cycle}.${m.phase}.${m.session}` : `Today's Session`;
 
         return (
           <div className="p-4 card mb-4">
@@ -584,10 +492,129 @@
             </div>
             <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
             <div className="flex flex-col md:flex-row gap-2 mt-3">
-              <button className="btn bg-blue-600 w-full" onClick={onConfirm}>Continue</button>
+              <button className="btn bg-blue-600 w-full" onClick={()=>onConfirm()}>Continue</button>
               <button className="btn bg-gray-600 w-full" onClick={onSkip}>Skip today</button>
             </div>
             <p className="text-xs text-gray-400 mt-2">We remember your choice until midnight.</p>
+          </div>
+        );
+      }
+
+      function PerformanceForm({ session, onChange }){
+        const m = session?.meta || {};
+        const perf = m.performance || { load:"", rpe:"", notes:"" };
+        const isStrength = ["kettlebell","barbell","bodyweight"].includes(m.modality);
+        if(!isStrength) return null;
+        return (
+          <div className="p-4 card mb-4">
+            <p className="font-semibold mb-2">Performance</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div>
+                <label className="text-xs text-gray-400">Load</label>
+                <input className="w-full px-2 py-1 rounded bg-gray-800"
+                       value={perf.load}
+                       onChange={e=>onChange({...perf, load:e.target.value})}/>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400">RPE (1–10)</label>
+                <input className="w-full px-2 py-1 rounded bg-gray-800"
+                       type="number" min="1" max="10"
+                       value={perf.rpe}
+                       onChange={e=>onChange({...perf, rpe:e.target.value})}/>
+              </div>
+              <div className="md:col-span-3">
+                <label className="text-xs text-gray-400">Notes</label>
+                <textarea className="w-full px-2 py-1 rounded bg-gray-800" rows="3"
+                          value={perf.notes}
+                          onChange={e=>onChange({...perf, notes:e.target.value})}/>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      /* ====== B6E TEST LOGIC ADD-ON ====== */
+      const KB_TEST_ITEMS = [
+        { k: "One-arm Swing", note: "10 reps each arm" },
+        { k: "Get Up",        note: "1 rep each arm" },
+        { k: "Double Clean",  note: "5 reps" },
+        { k: "Military Press",note: "5 reps each arm" },
+        { k: "Double Front Squat", note: "5 reps" },
+        { k: "Snatch",        note: "5 reps each arm" }
+      ];
+      const BB_TEST_ITEMS = [
+        { c:"Legs", k:"Back Squat" }, { c:"Legs", k:"Front Squat" }, { c:"Legs", k:"Zercher Squat" },
+        { c:"Push", k:"Bench Press" }, { c:"Push", k:"Incline Bench Press" }, { c:"Push", k:"Shoulder Press" },
+        { c:"Pull", k:"Conventional Deadlift" }, { c:"Pull", k:"Goodmorning" }, { c:"Pull", k:"Sumo Deadlift" }
+      ];
+      function buildKbTestSession(){
+        const lines = [
+          "Kettlebell Test Day — Use one bell heavier than your normal bell for Test Day.",
+          "",
+          ...KB_TEST_ITEMS.map(it => `* ${it.k}${it.note ? " — "+it.note : ""}`)
+        ];
+        return { main: lines, meta: { modality: "kettlebell_test", date: new Date().toISOString() } };
+      }
+      function buildBbTestSession(){
+        const lines = [
+          "Barbell Test Day",
+          "",
+          "* Important: If every box is checked, you may increase your weights for the next cycle:",
+          "* Upper body: +2.5–5%",
+          "* Lower body: +5–10%",
+          "",
+          ...BB_TEST_ITEMS.map(it => `* ${it.c}: ${it.k}`)
+        ];
+        return { main: lines, meta: { modality: "barbell_test", date: new Date().toISOString() } };
+      }
+      function TestView({ modality, onSubmit, testChecks, setTestChecks, testPassed, onStartNewCycle, onContinueCycle }) {
+        const isKB = modality === 'kettlebell';
+        const items = isKB ? KB_TEST_ITEMS : BB_TEST_ITEMS;
+        return (
+          <div className="p-4 card mb-4">
+            <h2 className="font-semibold mb-2 text-lg">
+              {isKB ? "Kettlebell Test Day" : "Barbell Test Day"}
+            </h2>
+            {isKB ? (
+              <p className="text-sm mb-2">
+                <strong>Important:</strong> Use one bell heavier than your normal bell for Test Day.
+              </p>
+            ) : (
+              <div className="text-sm mb-2">
+                <p><strong>Important:</strong> If every box is checked, you may increase your weights for the next cycle:</p>
+                <ul className="list-disc ml-6">
+                  <li>Upper body: +2.5–5%</li>
+                  <li>Lower body: +5–10%</li>
+                </ul>
+              </div>
+            )}
+            <div className="space-y-2">
+              {items.map((it, idx) => {
+                const key = isKB ? it.k : `${it.c}:${it.k}`;
+                return (
+                  <label key={idx} className="flex items-center justify-between">
+                    <span className="text-base">
+                      {isKB ? `${it.k}${it.note?` — ${it.note}`:''}` : `${it.c}: ${it.k}`}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={!!testChecks[key]}
+                      onChange={() => setTestChecks(t => ({ ...t, [key]: !t[key] }))}
+                    />
+                  </label>
+                );
+              })}
+            </div>
+            {!testPassed ? (
+              <button onClick={onSubmit} className="btn bg-blue-600 w-full mt-3">
+                Submit Test Result
+              </button>
+            ) : (
+              <div className="flex flex-col gap-2 mt-3">
+                <button className="btn bg-green-600 w-full" onClick={onStartNewCycle}>Start New Cycle</button>
+                <button className="btn bg-gray-700 w-full" onClick={onContinueCycle}>Continue This Cycle</button>
+              </div>
+            )}
           </div>
         );
       }
@@ -678,6 +705,8 @@
           if(recoveryMode === "gate"){ setRoute("gate"); }
         },[recoveryMode]);
 
+        const [activeRecoveryChoice, setActiveRecoveryChoice] = useState(null);
+
         const [lastModalityStored, setLastModalityStored] = useState(lsGet("last_modality", null));
         const lastModalityVisual = useMemo(()=>{
           return getLatestMainModalityFromHistory() || lastModalityStored || null;
@@ -696,8 +725,28 @@
 
         function toggleDark(){ document.documentElement.classList.toggle('dark'); }
 
+        function lockToday(routeChosen){
+          lsSet("recovery:stamp", todayStr());
+          lsSet("recovery:lastRoute", routeChosen);
+        }
+        function decideGate(total){
+          if(total>=11) return "train";
+          if(total>=7)  return "recovery";
+          return "fullrest";
+        }
+        function handleGateConfirm(){
+          const routeChosen = decideGate(recovery.total||0);
+          lockToday(routeChosen);
+          setRoute(routeChosen);
+          setActiveRecoveryChoice(null);
+        }
+        function handleGateSkip(){
+          lockToday("train");
+          setRoute("train");
+        }
+
         function restartSelected(){
-          if(session && session.meta && ['hiit','recovery','breathing','warmup','kettlebell_test'].includes(session.meta.modality)){
+          if(session && session.meta && ['hiit','recovery','breathing','warmup','kettlebell_test','barbell_test'].includes(session.meta.modality)){
             try{localStorage.removeItem(currentKey(session.meta.modality));}catch(e){}
           }
           const eng=engineFor(modality);
@@ -721,141 +770,11 @@
           arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:s.main, meta:s.meta });
           lsSet(historyKey(m),arr);
         }
-
-        // ==== Kettlebell Test Day ====
-        function openKbTestDay(){
-          const lines = [
-            "Kettlebell Test Day — Use one bell heavier than your normal bell for Test Day.",
-            "",
-            "* Goal: complete all prescribed quality standards with the heavier bell.",
-            "* If you pass everything: you may start a NEW cycle using this heavier bell.",
-            "* If not: stay with your current bell and continue to develop in the next phase.",
-            "",
-            "Tip",
-            "* Log your bell choice in Performance (Load) and/or save the new bell when prompted."
-          ];
-          const tSession = {
-            main: lines,
-            meta: { modality:'kettlebell_test', date: new Date().toISOString() }
-          };
-          lsSet(currentKey('kettlebell_test'), tSession);
-          setModality('kettlebell');
-          setSession(tSession);
-          setElapsed(0); setRunning(false);
-        }
-
-        function planBarbellIncrease(upperPct, lowerPct){
-          const plan = { upper: upperPct, lower: lowerPct, date: new Date().toISOString() };
-          lsSet('sfl:planned_increase', plan);
-        }
-
-        function completeSession(){
+        function updatePerformance(perf){
           if(!session) return;
-          setRunning(false);
-
-          const metaMod = session.meta && session.meta.modality;
-
-          // ==== Warm-up: NIET opslaan/complete, gewoon sluiten ====
-          if(metaMod==='warmup'){
-            try{ localStorage.removeItem(currentKey('warmup')); }catch(e){}
-            setSession(null);
-            alert("Warm-up closed.");
-            return;
-          }
-
-          // ==== Kettlebell Test Day completion ====
-          if(metaMod==='kettlebell_test'){
-            // eerst naar history: je wilt de test wel kunnen terugzien
-            saveToHistory(session, metaMod);
-            const passed = confirm("Did you pass ALL test standards with the heavier bell?");
-            if(passed){
-              const newBell = prompt('Enter the NEW (heavier) kettlebell you will use for the next cycle (e.g., \"24 kg\"):', lsGet('kb:bell_current', '') || '');
-              if(newBell && newBell.trim()){ lsSet('kb:bell_current', newBell.trim()); }
-
-              // Start a fresh SFG cycle
-              if(typeof SFG.startNewCycle==='function'){ SFG.startNewCycle(); }
-              else {
-                SFG.display_cycle_index = (SFG.display_cycle_index||1) + 1;
-                SFG.current_phase = 1;
-                SFG.session_count = 0;
-                SFG.exercise_usage_count = {};
-                SFG.last_session_exercises = [];
-                SFG.last_session_volumes = {};
-                SFG.all_sessions = [];
-                SFG.persist();
-              }
-              const s = SFG.generate_single_session();
-              s.meta.modality = 'kettlebell';
-              lsSet(currentKey('kettlebell'), s);
-              try{ localStorage.removeItem(currentKey('kettlebell_test')); }catch(e){}
-              setModality('kettlebell');
-              setSession(s);
-              setElapsed(0);
-              alert("Congrats — new cycle started with the heavier bell.");
-              return;
-            } else {
-              alert("No worries. Stay with your current bell and continue in the next phase.");
-              try{ localStorage.removeItem(currentKey('kettlebell_test')); }catch(e){}
-              setSession(null);
-              return;
-            }
-          }
-
-          // ==== Main sessions: eerst saven ====
-          saveToHistory(session, metaMod ? metaMod : modality);
-
-          // ==== End-of-cycle hooks (KB/BB) — FIX: key off modality + phase_end ====
-          if (session?.meta?.phase_end && (modality === 'kettlebell' || modality === 'barbell')) {
-            if(modality==='kettlebell'){
-              const goTest = confirm(
-                "Kettlebell cycle complete (36/36).\nDo you want to run the Kettlebell Test Day now?\n" +
-                "Rule: Use one bell heavier than your normal bell for Test Day."
-              );
-              if(goTest){
-                openKbTestDay();
-                return;
-              }
-            }
-            if(modality==='barbell'){
-              const msg =
-                "Barbell cycle complete.\nEvery box checked? Increase:\n" +
-                "Upper body: +2.5–5%\nLower body: +5–10%\n\n" +
-                "Type one of: '2.5/5' or '5/10'\n" +
-                "Or leave empty to continue into the next phase with higher volume (as already set).";
-              const choice = prompt(msg, "");
-              if(choice){
-                const norm = choice.replace(/\s+/g,'').toLowerCase();
-                if(norm==='2.5/5' || norm==='2.5/5.0'){
-                  planBarbellIncrease(2.5,5);
-                  alert("Planned: Upper +2.5%, Lower +5% for the next cycle.");
-                } else if(norm==='5/10' || norm==='5.0/10'){
-                  planBarbellIncrease(5,10);
-                  alert("Planned: Upper +5%, Lower +10% for the next cycle.");
-                } else {
-                  alert("Saved nothing. You can plan later.");
-                }
-              } else {
-                alert("Continuing with the next phase and higher volume (as already set).");
-              }
-            }
-          }
-
-          // ==== Specials opruimen ====
-          const special = ['hiit','recovery','breathing']; // warmup is hierboven afgevangen
-          if(special.includes(metaMod)){
-            try{localStorage.removeItem(currentKey(metaMod));}catch(e){}
-            setSession(null);
-            alert(`${metaMod==='hiit'?'Inferno':metaMod==='recovery'?'Active Recovery':'Breathing'} saved to history.`);
-            return;
-          }
-
-          // ==== Volgende main sessie pinnen ====
-          const eng=engineFor(modality);
-          const s=eng.generate_single_session();
-          s.meta.modality=modality;
-          lsSet(currentKey(modality),s);
-          setSession(s);
-          setElapsed(0);
+          const next = { ...session, meta: { ...session.meta, performance: perf } };
+          lsSet(`current:${session.meta?.modality || modality}`, next);
+          setSession(next);
         }
 
         // ==== Inferno ====
@@ -875,7 +794,7 @@
           setElapsed(0); setRunning(false);
         }
 
-        // ==== Warm-up (fixed routine, NOT saved) ====
+        // ==== Warm-up (fixed routine — NOT saved) ====
         function openWarmup(){
           const lines = [
             "Warm-up — do between 10 reps and your age per movement",
@@ -896,44 +815,218 @@
           ];
           const wSession = { main: lines, meta: { modality:'warmup', date:new Date().toISOString() } };
           lsSet(currentKey('warmup'), wSession);
-          // voor UI-neutraliteit laten we modality ongemoeid
           setSession(wSession);
           setElapsed(0); setRunning(false);
         }
 
-        /* ===== GATE ===== */
-        const [route, setRoute] = useState("gate");
-        useEffect(()=>{
-          if(recoveryMode==="gate"){
-            const stamp = lsGet("recovery:stamp", null);
-            const today = todayStr();
-            setRoute(stamp===today ? lsGet("recovery:lastRoute","train") : "gate");
+        // ==== Active Recovery quick (inline suggestions) ====
+        function chooseMobility(){
+          const lines = [
+            "Mobility — do 5–10 smooth reps per movement",
+            "",
+            "Hips",
+            "* Figure 4 position",
+            "* Figure 4 lunge",
+            "* Half heel sit",
+            "* Z position switches & Z position side roll",
+            "* Hip Openers – Prone → TGU → Bridge",
+            "",
+            "Shoulders",
+            "* The Egyptian (Seated, Pike, Prone)",
+            "* S movement (Seated, Pike, Prone)",
+            "* Figure 8 in Crawl (6-point & 4-point)",
+            "* Crawl → Crab",
+            "* Pike → Tabletop",
+            "",
+            "Ankles",
+            "* Ankle series (Up & down, In & out, Rotations)",
+            "* Figure 8’s (toes & ankle)",
+            "* Snail",
+            "* Crawl → Frog → Crab transitions",
+            "",
+            "Spine & Neck",
+            "* Supine neck rolls (L ↔ R)",
+            "* Hand on knee rolling",
+            "* Segmental rolling (Neck, arms & legs)",
+            "* Forward & backward rolling",
+            "",
+            "Wrists",
+            "* Finger waves",
+            "* Hand circles",
+            "* Teapot"
+          ];
+          const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Mobility' } };
+          lsSet(`current:recovery`, recSession);
+          setSession(recSession);
+          setElapsed(0); setRunning(false);
+        }
+        function chooseFlowPlusZone2(){
+          const flow = (typeof window.GFM_FLOW_GENERATE==='function') ? window.GFM_FLOW_GENERATE() : ["Flow generator unavailable."];
+          const lines = ["Flow (~20 min):", ...flow, "", "Then: 30 min Zone 2 cardio (run/bike/row)"];
+          const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Flow + Zone 2' } };
+          lsSet(`current:recovery`, recSession);
+          setSession(recSession);
+          setElapsed(0); setRunning(false);
+        }
+        function chooseZone2Only(){
+          const lines = ["Zone 2 only:", "* Do 30 min continuous Zone 2 cardio (run, bike, row, etc.)."];
+          const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Zone 2' } };
+          lsSet(`current:recovery`, recSession);
+          setSession(recSession);
+          setElapsed(0); setRunning(false);
+        }
+
+        /* ====== B6E test state ====== */
+        const [testChecks, setTestChecks] = useState({});
+        const [testPassed, setTestPassed] = useState(false);
+
+        function submitTestResult(){
+          const isKB = (session?.meta?.modality === 'kettlebell_test');
+          const total = isKB ? KB_TEST_ITEMS.length : BB_TEST_ITEMS.length;
+          const passed = Object.values(testChecks).filter(Boolean).length;
+
+          // log test to history
+          const histKey = `history:${isKB ? 'kettlebell_test' : 'barbell_test'}`;
+          const arr = lsGet(histKey, []);
+          arr.push({
+            saved_at: new Date().toISOString(),
+            meta: session.meta,
+            main: session.main,
+            passed, total
+          });
+          lsSet(histKey, arr);
+
+          if(passed === total){
+            setTestPassed(true); // show choice buttons
           } else {
-            setRoute("train");
+            // FAIL => next phase or repeat phase 3 (b6E)
+            const eng = isKB ? SFG : SFL;
+            if(eng.current_phase < 3){
+              eng.current_phase += 1;  // 1→2 or 2→3
+            } else {
+              eng.current_phase = 3;    // repeat phase 3
+            }
+            eng.session_count = 0;
+            eng.exercise_usage_count = {};
+            eng.last_session_exercises = [];
+            eng.last_session_volumes = {};
+            eng.all_sessions = [];
+            eng.persist();
+
+            try{ localStorage.removeItem(`current:${isKB?'kettlebell_test':'barbell_test'}`); }catch(e){}
+            const next = eng.generate_single_session();
+            next.meta.modality = isKB ? 'kettlebell' : 'barbell';
+            lsSet(`current:${next.meta.modality}`, next);
+            setSession(next);
+            setTestChecks({});
+            setTestPassed(false);
           }
-        },[recoveryMode]);
-        function lockToday(routeChosen){
-          lsSet("recovery:stamp", todayStr());
-          lsSet("recovery:lastRoute", routeChosen);
         }
-        function decideGate(total){
-          if(total>=11) return "train";
-          if(total>=7)  return "recovery";
-          return "fullrest";
+        function startNewCycle(){
+          const isKB = (session?.meta?.modality === 'kettlebell_test');
+          const eng = isKB ? SFG : SFL;
+          if(typeof eng.startNewCycle === 'function'){
+            eng.startNewCycle();
+          } else {
+            eng.display_cycle_index = (eng.display_cycle_index||1) + 1;
+            eng.current_phase = 1;
+            eng.session_count = 0;
+            eng.exercise_usage_count = {};
+            eng.last_session_exercises = [];
+            eng.last_session_volumes = {};
+            eng.all_sessions = [];
+            eng.persist();
+          }
+          try{ localStorage.removeItem(`current:${isKB?'kettlebell_test':'barbell_test'}`); }catch(e){}
+          const next = eng.generate_single_session();
+          next.meta.modality = isKB ? 'kettlebell' : 'barbell';
+          lsSet(`current:${next.meta.modality}`, next);
+          setSession(next);
+          setTestChecks({});
+          setTestPassed(false);
         }
-        function handleGateConfirm(){
-          const routeChosen = decideGate(recovery.total||0);
-          lockToday(routeChosen);
-          setRoute(routeChosen);
-        }
-        function handleGateSkip(){
-          lockToday("train");
-          setRoute("train");
+        function continueThisCycle(){
+          const isKB = (session?.meta?.modality === 'kettlebell_test');
+          const eng = isKB ? SFG : SFL;
+          if(eng.current_phase < 3){
+            eng.current_phase += 1;
+          } else {
+            eng.current_phase = 3; // repeat
+          }
+          eng.session_count = 0;
+          eng.exercise_usage_count = {};
+          eng.last_session_exercises = [];
+          eng.last_session_volumes = {};
+          eng.all_sessions = [];
+          eng.persist();
+
+          try{ localStorage.removeItem(`current:${isKB?'kettlebell_test':'barbell_test'}`); }catch(e){}
+          const next = eng.generate_single_session();
+          next.meta.modality = isKB ? 'kettlebell' : 'barbell';
+          lsSet(`current:${next.meta.modality}`, next);
+          setSession(next);
+          setTestChecks({});
+          setTestPassed(false);
         }
 
-        const hasPinned = !!session;
-        const isHIIT = modality==='hiit';
+        function completeSession(){
+          if(!session) return;
+          setRunning(false);
+          const metaMod = session.meta?.modality;
 
+          // Warm-up: not saved
+          if(metaMod==='warmup'){
+            try{localStorage.removeItem(currentKey('warmup'));}catch(e){}
+            setSession(null);
+            alert("Warm-up closed.");
+            return;
+          }
+
+          // Specials
+          if(['hiit','recovery','breathing'].includes(metaMod)){
+            try{localStorage.removeItem(currentKey(metaMod));}catch(e){}
+            const histKeySpecial = historyKey(metaMod);
+            const arr = lsGet(histKeySpecial,[]);
+            arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:session.main, meta:session.meta });
+            lsSet(histKeySpecial, arr);
+            setSession(null);
+            alert(`${metaMod==='hiit'?'Inferno':metaMod==='recovery'?'Active Recovery':'Breathing'} saved to history.`);
+            return;
+          }
+
+          // Save main
+          saveToHistory(session, metaMod || modality);
+
+          // End-of-phase → pin Test Day (no prompts)
+          if (session?.meta?.phase_end && (modality==='kettlebell' || modality==='barbell')){
+            if(modality==='kettlebell'){
+              const t = buildKbTestSession();
+              lsSet('current:kettlebell_test', t);
+              setSession(t);
+              setTestChecks({});
+              setTestPassed(false);
+              return;
+            }
+            if(modality==='barbell'){
+              const t = buildBbTestSession();
+              lsSet('current:barbell_test', t);
+              setSession(t);
+              setTestChecks({});
+              setTestPassed(false);
+              return;
+            }
+          }
+
+          // Next main
+          const eng=engineFor(modality);
+          const s=eng.generate_single_session();
+          s.meta.modality=modality;
+          lsSet(currentKey(modality),s);
+          setSession(s);
+          setElapsed(0);
+        }
+
+        // gate screen (full-screen)
         if (recoveryMode==="gate" && route==="gate") {
           return (
             <div className="mx-auto w-full max-w-md md:max-w-2xl min-h-screen flex items-start pt-4">
@@ -954,17 +1047,20 @@
           );
         }
 
+        const hasPinned = !!session;
+        const isHIIT = modality==='hiit';
+
         return (
           <div className="mx-auto w-full max-w-md md:max-w-2xl">
             <Header
               onHiit={openHiitChooser}
-              onToggleDark={()=>document.documentElement.classList.toggle('dark')}
+              onToggleDark={toggleDark}
               onRestart={restartSelected}
               recoveryMode={recoveryMode}
               setRecoveryMode={setRecoveryMode}
             />
 
-            {/* Inline Recovery mode (sliders inline on top) */}
+            {/* Inline Recovery bar + choices */}
             {recoveryMode==="inline" && (
               <div className="p-4 card mb-4">
                 <p className="font-semibold mb-2">Recovery Check</p>
@@ -986,49 +1082,103 @@
                   ))}
                 </div>
                 <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
+                {recovery.total>=7 && recovery.total<=10 && (
+                  <>
+                    <p className="text-xs text-gray-400 mt-3">Active Recovery — Choose:</p>
+                    <div className="flex flex-col gap-2 mt-2">
+                      <button className="btn bg-gray-700 w-full" onClick={chooseMobility}>Mobility</button>
+                      <button className="btn bg-gray-700 w-full" onClick={chooseFlowPlusZone2}>Flow + Zone 2</button>
+                      <button className="btn bg-gray-700 w-full" onClick={chooseZone2Only}>Zone 2</button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
-            {/* Modality */}
+            {/* Gate recovery-choice surface when route==='recovery' */}
+            {(recoveryMode==='gate' && route==='recovery') && (
+              <div className="p-4 card mb-4">
+                <p className="font-semibold mb-2">Active Recovery — Choose</p>
+                <div className="flex flex-col gap-2">
+                  <button className="btn bg-gray-700 w-full" onClick={chooseMobility}>Mobility</button>
+                  <button className="btn bg-gray-700 w-full" onClick={chooseFlowPlusZone2}>Flow + Zone 2</button>
+                  <button className="btn bg-gray-700 w-full" onClick={chooseZone2Only}>Zone 2</button>
+                </div>
+              </div>
+            )}
+
+            {/* Full Rest → show breathing options only */}
+            {(recoveryMode==='gate' && route==='fullrest') && (
+              <div className="p-4 card mb-4">
+                <p className="font-semibold mb-2">Rest Day — Breathing (Bottom Triangle)</p>
+                <div className="space-y-2">
+                  {REST_BREATHING_OPTIONS.map((opt, idx)=>(
+                    <div key={idx} className="p-3 rounded bg-gray-800">
+                      <p className="font-medium">{opt.level} — {opt.name}</p>
+                      <p className="text-sm">{opt.pattern}</p>
+                      <p className="text-xs italic">{opt.note}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Modality toggles */}
             <ModalityToggles
               modality={isHIIT?'bodyweight':modality}
               setModality={m=>{ if(m==='hiit')return; setModality(m); }}
               lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
             />
 
-            {/* Actions (no HIIT button here) */}
+            {/* Actions: ONLY Generate Cycle when nothing pinned (no HIIT buttons here) */}
             <div className="p-4 card mb-4">
               <div className="flex flex-col gap-2">
-                {session && session.meta && session.meta.modality === 'hiit' ? (
-                  <div className="flex flex-col md:flex-row gap-2">
-                    {[300,400,500].map(val=>(
-                      <button key={val} onClick={()=>triggerInferno(val)} className="btn bg-blue-600 w-full">
-                        New Inferno {val}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  !hasPinned && (
-                    <button onClick={generateCycle} className="btn bg-blue-600 w-full">
-                      Generate Cycle (start at 1.1.1)
-                    </button>
-                  )
+                {!hasPinned && (
+                  <button onClick={generateCycle} className="btn bg-blue-600 w-full">
+                    Generate Cycle (start at 1.1.1)
+                  </button>
                 )}
+                {/* Warm-up quick link */}
+                <button onClick={openWarmup} className="btn bg-emerald-700 w-full">
+                  Warm-up
+                </button>
               </div>
             </div>
 
-            <SessionView session={session}/>
+            {/* Test view or normal session */}
+            {session && (session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test')
+              ? (
+                <TestView
+                  modality={session.meta.modality==='kettlebell_test' ? 'kettlebell' : 'barbell'}
+                  testChecks={testChecks}
+                  setTestChecks={setTestChecks}
+                  testPassed={testPassed}
+                  onSubmit={submitTestResult}
+                  onStartNewCycle={startNewCycle}
+                  onContinueCycle={continueThisCycle}
+                />
+              ) : (
+                <SessionView session={session}/>
+              )
+            }
 
-            {/* Under the pinned session: controls */}
+            {/* Under the pinned session: buttons */}
             <div className="flex gap-2 mb-4">
-              {/* Warm-up: no Complete/save — just close */}
-              {session && session.meta && session.meta.modality==='warmup' ? (
+              {session?.meta?.modality==='warmup' ? (
                 <button
                   onClick={()=>{ try{localStorage.removeItem(`current:warmup`);}catch(e){}; setSession(null); }}
                   className="btn-sm bg-gray-600 w-full"
                   title="Close warm-up (not saved)"
                 >
                   Close Warm-up
+                </button>
+              ) : session && (session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test') ? (
+                <button
+                  onClick={()=>{ setSession(null); }}
+                  className="btn-sm bg-gray-600 w-full"
+                  title="Close test view (pinned test remains until submitted)"
+                >
+                  Close Test View
                 </button>
               ) : (
                 <>
@@ -1040,8 +1190,7 @@
                   >
                     Complete
                   </button>
-                  {/* Warm-up open button (only if current pinned is NOT warm-up) */}
-                  {!(session && session.meta && session.meta.modality==='warmup') && (
+                  {session?.meta?.modality!=='warmup' && (
                     <button
                       onClick={openWarmup}
                       className="btn-sm bg-emerald-700 w-1/2"
@@ -1054,18 +1203,12 @@
               )}
             </div>
 
-            {/* Performance only for strength modalities */}
-            {session && !['warmup','breathing','recovery','kettlebell_test','hiit'].includes(session?.meta?.modality) && (
-              <PerformanceForm session={session} onChange={(perf)=>{
-                const next = { ...session, meta: { ...session.meta, performance: perf } };
-                lsSet(`current:${session.meta?.modality || modality}`, next);
-                setSession(next);
-              }}/>
+            {session && !['warmup','breathing','recovery','kettlebell_test','barbell_test','hiit'].includes(session?.meta?.modality) && (
+              <PerformanceForm session={session} onChange={updatePerformance}/>
             )}
-
             <Timer elapsed={elapsed} setElapsed={setElapsed} running={running} setRunning={setRunning} />
 
-            {/* History tabs: no warmup history */}
+            {/* History tabs */}
             <History modality={(session && session.meta && session.meta.modality) ? session.meta.modality : (isHIIT?'hiit':modality)} />
             <History modality="breathing" />
 
@@ -1089,3 +1232,4 @@
     </script>
   </body>
 </html>
+
