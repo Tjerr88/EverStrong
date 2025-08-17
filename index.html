@@ -429,6 +429,7 @@
                 </button>
               </div>
               <div className="flex gap-2">
+                <!-- HIIT alleen als extra bovenin -->
                 <button onClick={onHiit} className="text-sm text-blue-400 underline">I Feel Like HIIT Today</button>
                 <button onClick={onRestart} className="text-sm text-amber-400 underline">Restart</button>
               </div>
@@ -583,44 +584,10 @@
             </div>
             <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
             <div className="flex flex-col md:flex-row gap-2 mt-3">
-              <button className="btn bg-blue-600 w-full" onClick={()=>onConfirm()}>Continue</button>
+              <button className="btn bg-blue-600 w-full" onClick={onConfirm}>Continue</button>
               <button className="btn bg-gray-600 w-full" onClick={onSkip}>Skip today</button>
             </div>
             <p className="text-xs text-gray-400 mt-2">We remember your choice until midnight.</p>
-          </div>
-        );
-      }
-
-      /* ========== Performance form (Load/RPE/Notes) ========== */
-      function PerformanceForm({ session, onChange }){
-        const m = session?.meta || {};
-        const perf = m.performance || { load:"", rpe:"", notes:"" };
-        const isStrength = ["kettlebell","barbell","bodyweight"].includes(m.modality);
-        if(!isStrength) return null;
-        return (
-          <div className="p-4 card mb-4">
-            <p className="font-semibold mb-2">Performance</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <div>
-                <label className="text-xs text-gray-400">Load</label>
-                <input className="w-full px-2 py-1 rounded bg-gray-800"
-                       value={perf.load}
-                       onChange={e=>onChange({...perf, load:e.target.value})}/>
-              </div>
-              <div>
-                <label className="text-xs text-gray-400">RPE (1–10)</label>
-                <input className="w-full px-2 py-1 rounded bg-gray-800"
-                       type="number" min="1" max="10"
-                       value={perf.rpe}
-                       onChange={e=>onChange({...perf, rpe:e.target.value})}/>
-              </div>
-              <div className="md:col-span-3">
-                <label className="text-xs text-gray-400">Notes</label>
-                <textarea className="w-full px-2 py-1 rounded bg-gray-800" rows="3"
-                          value={perf.notes}
-                          onChange={e=>onChange({...perf, notes:e.target.value})}/>
-              </div>
-            </div>
           </div>
         );
       }
@@ -711,8 +678,6 @@
           if(recoveryMode === "gate"){ setRoute("gate"); }
         },[recoveryMode]);
 
-        const [activeRecoveryChoice, setActiveRecoveryChoice] = useState(null);
-
         const [lastModalityStored, setLastModalityStored] = useState(lsGet("last_modality", null));
         const lastModalityVisual = useMemo(()=>{
           return getLatestMainModalityFromHistory() || lastModalityStored || null;
@@ -730,26 +695,6 @@
         },[modality]);
 
         function toggleDark(){ document.documentElement.classList.toggle('dark'); }
-
-        function lockToday(routeChosen){
-          lsSet("recovery:stamp", todayStr());
-          lsSet("recovery:lastRoute", routeChosen);
-        }
-        function decideGate(total){
-          if(total>=11) return "train";
-          if(total>=7)  return "recovery";
-          return "fullrest";
-        }
-        function handleGateConfirm(){
-          const routeChosen = decideGate(recovery.total||0);
-          lockToday(routeChosen);
-          setRoute(routeChosen);
-          setActiveRecoveryChoice(null);
-        }
-        function handleGateSkip(){
-          lockToday("train");
-          setRoute("train");
-        }
 
         function restartSelected(){
           if(session && session.meta && ['hiit','recovery','breathing','warmup','kettlebell_test'].includes(session.meta.modality)){
@@ -775,12 +720,6 @@
           const arr=lsGet(historyKey(m),[]);
           arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:s.main, meta:s.meta });
           lsSet(historyKey(m),arr);
-        }
-        function updatePerformance(perf){
-          if(!session) return;
-          const next = { ...session, meta: { ...session.meta, performance: perf } };
-          lsSet(`current:${session.meta?.modality || modality}`, next);
-          setSession(next);
         }
 
         // ==== Kettlebell Test Day ====
@@ -816,14 +755,21 @@
 
           const metaMod = session.meta && session.meta.modality;
 
-          // Always save current pinned session to history
-          saveToHistory(session, metaMod ? metaMod : modality);
+          // ==== Warm-up: NIET opslaan/complete, gewoon sluiten ====
+          if(metaMod==='warmup'){
+            try{ localStorage.removeItem(currentKey('warmup')); }catch(e){}
+            setSession(null);
+            alert("Warm-up closed.");
+            return;
+          }
 
-          // ====== Special: Kettlebell Test Day completion ======
+          // ==== Kettlebell Test Day completion ====
           if(metaMod==='kettlebell_test'){
+            // eerst naar history: je wilt de test wel kunnen terugzien
+            saveToHistory(session, metaMod);
             const passed = confirm("Did you pass ALL test standards with the heavier bell?");
             if(passed){
-              const newBell = prompt('Enter the NEW (heavier) kettlebell you will use for the next cycle (e.g., "24 kg"):', lsGet('kb:bell_current', '') || '');
+              const newBell = prompt('Enter the NEW (heavier) kettlebell you will use for the next cycle (e.g., \"24 kg\"):', lsGet('kb:bell_current', '') || '');
               if(newBell && newBell.trim()){ lsSet('kb:bell_current', newBell.trim()); }
 
               // Start a fresh SFG cycle
@@ -849,15 +795,17 @@
               return;
             } else {
               alert("No worries. Stay with your current bell and continue in the next phase.");
+              try{ localStorage.removeItem(currentKey('kettlebell_test')); }catch(e){}
+              setSession(null);
+              return;
             }
-            try{ localStorage.removeItem(currentKey('kettlebell_test')); }catch(e){}
-            setSession(null);
-            return;
           }
 
-          // ====== End-of-cycle hooks (only when a MAIN session finished) ======
-          if(!metaMod && session?.meta?.phase_end){
-            // Kettlebell end-of-cycle (36/36): offer Test Day (heavier bell)
+          // ==== Main sessions: eerst saven ====
+          saveToHistory(session, metaMod ? metaMod : modality);
+
+          // ==== End-of-cycle hooks (KB/BB) — FIX: key off modality + phase_end ====
+          if (session?.meta?.phase_end && (modality === 'kettlebell' || modality === 'barbell')) {
             if(modality==='kettlebell'){
               const goTest = confirm(
                 "Kettlebell cycle complete (36/36).\nDo you want to run the Kettlebell Test Day now?\n" +
@@ -868,8 +816,6 @@
                 return;
               }
             }
-
-            // Barbell end-of-cycle: offer increase or continue
             if(modality==='barbell'){
               const msg =
                 "Barbell cycle complete.\nEvery box checked? Increase:\n" +
@@ -894,16 +840,16 @@
             }
           }
 
-          // ====== For special pinned (hiit/recovery/breathing/warmup), clear and stop here ======
-          const special = ['hiit','recovery','breathing','warmup'];
+          // ==== Specials opruimen ====
+          const special = ['hiit','recovery','breathing']; // warmup is hierboven afgevangen
           if(special.includes(metaMod)){
             try{localStorage.removeItem(currentKey(metaMod));}catch(e){}
             setSession(null);
-            alert(`${metaMod==='hiit'?'Inferno':metaMod==='recovery'?'Active Recovery':metaMod==='warmup'?'Warm-up':'Breathing'} saved to history.`);
+            alert(`${metaMod==='hiit'?'Inferno':metaMod==='recovery'?'Active Recovery':'Breathing'} saved to history.`);
             return;
           }
 
-          // ====== Otherwise, generate the next main session in the current modality ======
+          // ==== Volgende main sessie pinnen ====
           const eng=engineFor(modality);
           const s=eng.generate_single_session();
           s.meta.modality=modality;
@@ -929,7 +875,7 @@
           setElapsed(0); setRunning(false);
         }
 
-        // ==== Warm-up (fixed routine) ====
+        // ==== Warm-up (fixed routine, NOT saved) ====
         function openWarmup(){
           const lines = [
             "Warm-up — do between 10 reps and your age per movement",
@@ -950,72 +896,44 @@
           ];
           const wSession = { main: lines, meta: { modality:'warmup', date:new Date().toISOString() } };
           lsSet(currentKey('warmup'), wSession);
-          setModality('bodyweight'); // neutral UI
+          // voor UI-neutraliteit laten we modality ongemoeid
           setSession(wSession);
           setElapsed(0); setRunning(false);
         }
 
-        // ==== Active Recovery (pin all options) ====
-        function chooseMobility(){
-          setActiveRecoveryChoice("A");
-          const lines = [
-            "Mobility — do 5–10 smooth reps per movement",
-            "",
-            "Hips",
-            "* Figure 4 position",
-            "* Figure 4 lunge",
-            "* Half heel sit",
-            "* Z position switches & Z position side roll",
-            "* Hip Openers – Prone → TGU → Bridge",
-            "",
-            "Shoulders",
-            "* The Egyptian (Seated, Pike, Prone)",
-            "* S movement (Seated, Pike, Prone)",
-            "* Figure 8 in Crawl (6-point & 4-point)",
-            "* Crawl → Crab",
-            "* Pike → Tabletop",
-            "",
-            "Ankles",
-            "* Ankle series (Up & down, In & out, Rotations)",
-            "* Figure 8’s (toes & ankle)",
-            "* Snail",
-            "* Crawl → Frog → Crab transitions",
-            "",
-            "Spine & Neck",
-            "* Supine neck rolls (L ↔ R)",
-            "* Hand on knee rolling",
-            "* Segmental rolling (Neck, arms & legs)",
-            "* Forward & backward rolling",
-            "",
-            "Wrists",
-            "* Finger waves",
-            "* Hand circles",
-            "* Teapot"
-          ];
-          const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Mobility' } };
-          lsSet(`current:recovery`, recSession);
-          setSession(recSession);
-          setElapsed(0); setRunning(false);
+        /* ===== GATE ===== */
+        const [route, setRoute] = useState("gate");
+        useEffect(()=>{
+          if(recoveryMode==="gate"){
+            const stamp = lsGet("recovery:stamp", null);
+            const today = todayStr();
+            setRoute(stamp===today ? lsGet("recovery:lastRoute","train") : "gate");
+          } else {
+            setRoute("train");
+          }
+        },[recoveryMode]);
+        function lockToday(routeChosen){
+          lsSet("recovery:stamp", todayStr());
+          lsSet("recovery:lastRoute", routeChosen);
         }
-        function chooseFlowPlusZone2(){
-          setActiveRecoveryChoice("B");
-          const flow = (typeof window.GFM_FLOW_GENERATE==='function') ? window.GFM_FLOW_GENERATE() : ["Flow generator unavailable."];
-          const lines = ["Flow (~20 min):", ...flow, "", "Then: 30 min Zone 2 cardio (run/bike/row)"];
-          const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Flow + Zone 2' } };
-          lsSet(`current:recovery`, recSession);
-          setSession(recSession);
-          setElapsed(0); setRunning(false);
+        function decideGate(total){
+          if(total>=11) return "train";
+          if(total>=7)  return "recovery";
+          return "fullrest";
         }
-        function chooseZone2Only(){
-          setActiveRecoveryChoice("C");
-          const lines = ["Zone 2 only:", "* Do 30 min continuous Zone 2 cardio (run, bike, row, etc.)."];
-          const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Zone 2' } };
-          lsSet(`current:recovery`, recSession);
-          setSession(recSession);
-          setElapsed(0); setRunning(false);
+        function handleGateConfirm(){
+          const routeChosen = decideGate(recovery.total||0);
+          lockToday(routeChosen);
+          setRoute(routeChosen);
+        }
+        function handleGateSkip(){
+          lockToday("train");
+          setRoute("train");
         }
 
-        /* ===== FULL-SCREEN GATE ===== */
+        const hasPinned = !!session;
+        const isHIIT = modality==='hiit';
+
         if (recoveryMode==="gate" && route==="gate") {
           return (
             <div className="mx-auto w-full max-w-md md:max-w-2xl min-h-screen flex items-start pt-4">
@@ -1036,14 +954,11 @@
           );
         }
 
-        const hasPinned = !!session;
-        const isHIIT = modality==='hiit';
-
         return (
           <div className="mx-auto w-full max-w-md md:max-w-2xl">
             <Header
               onHiit={openHiitChooser}
-              onToggleDark={toggleDark}
+              onToggleDark={()=>document.documentElement.classList.toggle('dark')}
               onRestart={restartSelected}
               recoveryMode={recoveryMode}
               setRecoveryMode={setRecoveryMode}
@@ -1071,16 +986,6 @@
                   ))}
                 </div>
                 <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
-                {recovery.total>=7 && recovery.total<=10 && (
-                  <>
-                    <p className="text-xs text-gray-400 mt-3">Active Recovery — Choose:</p>
-                    <div className="flex flex-col gap-2 mt-2">
-                      <button className="btn bg-gray-700 w-full" onClick={chooseMobility}>Mobility</button>
-                      <button className="btn bg-gray-700 w-full" onClick={chooseFlowPlusZone2}>Flow + Zone 2</button>
-                      <button className="btn bg-gray-700 w-full" onClick={chooseZone2Only}>Zone 2</button>
-                    </div>
-                  </>
-                )}
               </div>
             )}
 
@@ -1091,7 +996,7 @@
               lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
             />
 
-            {/* Actions: for HIIT extras */}
+            {/* Actions (no HIIT button here) */}
             <div className="p-4 card mb-4">
               <div className="flex flex-col gap-2">
                 {session && session.meta && session.meta.modality === 'hiit' ? (
@@ -1109,43 +1014,59 @@
                     </button>
                   )
                 )}
-                {/* I Feel Like HIIT Today */}
-                <button onClick={openHiitChooser} className="btn bg-indigo-600 w-full">
-                  I Feel Like HIIT Today
-                </button>
               </div>
             </div>
 
             <SessionView session={session}/>
 
-            {/* Under the pinned session: small Complete + Warm-up */}
+            {/* Under the pinned session: controls */}
             <div className="flex gap-2 mb-4">
-              <button
-                onClick={completeSession}
-                className="btn-sm bg-green-600 w-1/2"
-                disabled={!session}
-                title={!session ? "No pinned session" : "Save this session"}
-              >
-                Complete
-              </button>
-              {/* Hide warm-up button if the pinned session IS the warm-up */}
-              {!(session && session.meta && session.meta.modality==='warmup') && (
+              {/* Warm-up: no Complete/save — just close */}
+              {session && session.meta && session.meta.modality==='warmup' ? (
                 <button
-                  onClick={openWarmup}
-                  className="btn-sm bg-emerald-700 w-1/2"
-                  title="Open fixed warm-up routine"
+                  onClick={()=>{ try{localStorage.removeItem(`current:warmup`);}catch(e){}; setSession(null); }}
+                  className="btn-sm bg-gray-600 w-full"
+                  title="Close warm-up (not saved)"
                 >
-                  Warm-up
+                  Close Warm-up
                 </button>
+              ) : (
+                <>
+                  <button
+                    onClick={completeSession}
+                    className="btn-sm bg-green-600 w-1/2"
+                    disabled={!session}
+                    title={!session ? "No pinned session" : "Save this session"}
+                  >
+                    Complete
+                  </button>
+                  {/* Warm-up open button (only if current pinned is NOT warm-up) */}
+                  {!(session && session.meta && session.meta.modality==='warmup') && (
+                    <button
+                      onClick={openWarmup}
+                      className="btn-sm bg-emerald-700 w-1/2"
+                      title="Open fixed warm-up routine (not saved)"
+                    >
+                      Warm-up
+                    </button>
+                  )}
+                </>
               )}
             </div>
 
-            <PerformanceForm session={session} onChange={updatePerformance}/>
+            {/* Performance only for strength modalities */}
+            {session && !['warmup','breathing','recovery','kettlebell_test','hiit'].includes(session?.meta?.modality) && (
+              <PerformanceForm session={session} onChange={(perf)=>{
+                const next = { ...session, meta: { ...session.meta, performance: perf } };
+                lsSet(`current:${session.meta?.modality || modality}`, next);
+                setSession(next);
+              }}/>
+            )}
+
             <Timer elapsed={elapsed} setElapsed={setElapsed} running={running} setRunning={setRunning} />
 
-            {/* History tabs */}
+            {/* History tabs: no warmup history */}
             <History modality={(session && session.meta && session.meta.modality) ? session.meta.modality : (isHIIT?'hiit':modality)} />
-            <History modality="warmup" />
             <History modality="breathing" />
 
             {/* Export */}
