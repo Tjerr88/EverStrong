@@ -12,7 +12,6 @@
   <style>
     :root { color-scheme: light dark; }
     body { -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; }
-    .card { border:1px solid rgba(255,255,255,.12); border-radius:.9rem; }
     .btn { border-radius:.9rem; padding:.75rem 1rem; }
     .btn-sm { border-radius:.7rem; padding:.5rem .75rem; font-size:.9rem; }
     .safe { padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
@@ -25,6 +24,7 @@
   <script type="text/babel" data-presets="env,react">
     const { useState, useEffect, useRef, useMemo } = React;
 
+    /* ================== Utils ================== */
     function lsGet(k, f){ try{ const v=localStorage.getItem(k); return v? JSON.parse(v): f; } catch(e){ return f; } }
     function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
     function fmtHMS(secs){
@@ -52,6 +52,7 @@
       return best;
     }
 
+    /* ================== Engines ================== */
     function createEngine({ key, patterns, cycleVolumes, sessionsPerCycle=18 }) {
       const saved = lsGet(key, null);
       const eng = {
@@ -155,8 +156,7 @@
       return eng;
     }
 
-    /* ================= ENGINES ================= */
-
+    // Engines
     const SFG = createEngine({
       key:'everstrong:sfg:v1',
       patterns:{
@@ -171,7 +171,6 @@
       cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
       sessionsPerCycle:36
     });
-
     const SFL = createEngine({
       key:'everstrong:sfl:v2',
       patterns:{
@@ -182,7 +181,6 @@
       cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
       sessionsPerCycle:18
     });
-
     const SFB = createEngine({
       key:'everstrong:sfb:v1',
       patterns:{
@@ -260,6 +258,7 @@
       { level:"Advanced", name:"Bottom Triangle 6-8-12", pattern:"Inhale 6s • Exhale 8s • Hold 12s (bottom)", note:"Practice 5–20 minutes." }
     ];
 
+    /* ======= UI helpers: list renderer ======= */
     function renderSmartList(lines){
       const out=[]; let buffer=[];
       function flushList(){
@@ -290,63 +289,131 @@
       return out;
     }
 
-    function Header({ onHiit, onToggleDark, onRestart, recoveryMode, setRecoveryMode, recoveryCount, recoveryMax }) {
+    /* ========= Calm UI components ========= */
+    function AppShell({ activeTab, setActiveTab, children, onToggleDark, calm, setCalm, recoveryMode, setRecoveryMode, recoveryCount, REC_MAX }) {
+      const tabs = [
+        { id: "train", label: "Train" },
+        { id: "recovery", label: "Recovery" },
+        { id: "history", label: "History" },
+        { id: "export", label: "Export" },
+        { id: "settings", label: "Settings" },
+      ];
       return (
-        <header className="text-center mb-4">
-          <h1 className="text-3xl md:text-4xl font-bold">EverStrong</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base">Be Strong. Move Well. Live Fully</p>
-          <div className="flex justify-between mt-3 gap-2">
-            <div className="flex items-center gap-3">
-              <button onClick={onToggleDark} className="text-sm text-purple-400 underline">Toggle Dark</button>
-              <button
-                onClick={()=>setRecoveryMode(m=> m==="gate" ? "inline" : "gate")}
-                className="text-sm text-teal-400 underline"
-              >
-                Recovery: {recoveryMode === "gate" ? "Gate" : "Inline"}
-              </button>
-              <span className="pill text-gray-400">Recovery today: {recoveryCount}/{recoveryMax}</span>
+        <div className="mx-auto max-w-2xl px-3">
+          {/* Topbar */}
+          <div className="sticky top-0 z-20 backdrop-blur bg-white/70 dark:bg-gray-900/60 border-b border-black/10 dark:border-white/10">
+            <div className="flex items-center justify-between h-12">
+              <div className="flex items-center gap-2">
+                <button
+                  className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 md:hidden"
+                  onClick={()=>document.getElementById("drawer").showModal()}
+                  aria-label="Open menu"
+                >
+                  <svg width="22" height="22" viewBox="0 0 24 24" className="opacity-70"><path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+                </button>
+                <h1 className="font-semibold">EverStrong</h1>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="text-xs flex items-center gap-1 opacity-80">
+                  <input type="checkbox" checked={calm} onChange={(e)=>{ setCalm(e.target.checked); lsSet('ui:calm', e.target.checked); }} />
+                  Calm
+                </label>
+                <button onClick={onToggleDark} className="text-xs underline opacity-80">Dark</button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button onClick={onHiit} className="text-sm text-blue-400 underline">I Feel Like HIIT Today</button>
-              <button onClick={onRestart} className="text-sm text-amber-400 underline">Restart</button>
+            {/* Tabs desktop */}
+            <div className="hidden md:flex gap-1 pb-2">
+              {tabs.map(t=>(
+                <button
+                  key={t.id}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition ${
+                    activeTab===t.id
+                    ? "bg-blue-600 text-white"
+                    : "hover:bg-black/5 dark:hover:bg-white/5"
+                  }`}
+                  onClick={()=>{ setActiveTab(t.id); lsSet('ui:tab', t.id); }}
+                >
+                  {t.label}
+                </button>
+              ))}
             </div>
           </div>
-        </header>
-      );
-    }
 
-    function ModalityToggles({ modality, setModality, lastModalityVisual }) {
-      function Item({ id, label }){
-        const active = (modality===id);
-        const wasLast = (id===lastModalityVisual);
-        let base = "px-3 py-2 rounded-lg cursor-pointer text-sm relative transition";
-        let cls = base + " ";
-        if (active && wasLast) {
-          cls += "bg-blue-600 text-white ring-2 ring-red-400";
-        } else if (active) {
-          cls += "bg-blue-600 text-white";
-        } else if (wasLast) {
-          cls += "bg-gray-200 dark:bg-gray-800 ring-2 ring-red-400";
-        } else {
-          cls += "bg-gray-200 dark:bg-gray-800";
-        }
-        return (
-          <label className={cls} title={wasLast ? "Last used" : ""}>
-            <input type="radio" name="modality" className="hidden" checked={active} onChange={()=>setModality(id)} />
-            {label}
-            {wasLast && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full" aria-hidden />}
-          </label>
-        );
-      }
-      return (
-        <div className="flex flex-wrap gap-2 justify-center mb-3">
-          <Item id="kettlebell" label="Kettlebell" />
-          <Item id="barbell" label="Barbell" />
-          <Item id="bodyweight" label="Bodyweight" />
+          {/* Drawer (mobile) */}
+          <dialog id="drawer" className="rounded-lg p-0 w-72 bg-white dark:bg-gray-900 border border-black/10 dark:border-white/10">
+            <div className="p-3 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
+              <span className="font-semibold">Menu</span>
+              <button onClick={()=>document.getElementById("drawer").close()} className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">✕</button>
+            </div>
+            <div className="p-2">
+              {tabs.map(t=>(
+                <button
+                  key={t.id}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 ${
+                    activeTab===t.id
+                    ? "bg-blue-600 text-white"
+                    : "hover:bg-black/5 dark:hover:bg-white/5"
+                  }`}
+                  onClick={()=>{ setActiveTab(t.id); lsSet('ui:tab', t.id); document.getElementById("drawer").close(); }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </dialog>
+
+          {/* Page content */}
+          <div className="mt-3 space-y-3">
+            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+              <span className="pill">Recovery today: {recoveryCount}/{REC_MAX}</span>
+              <button
+                onClick={()=>setRecoveryMode(m=> m==="gate" ? "inline" : "gate")}
+                className="underline"
+                title="Toggle recovery gate/inline"
+              >
+                Recovery mode: {recoveryMode === "gate" ? "Gate" : "Inline"}
+              </button>
+            </div>
+            {children}
+          </div>
         </div>
       );
     }
 
+    function Accordion({ title, children, defaultOpen=false }) {
+      const [open, setOpen] = React.useState(defaultOpen);
+      return (
+        <div className="border border-black/10 dark:border-white/10 rounded-xl">
+          <button
+            onClick={()=>setOpen(o=>!o)}
+            className="w-full flex items-center justify-between px-3 py-2"
+          >
+            <span className="font-medium">{title}</span>
+            <span className="text-sm opacity-70">{open ? "−" : "+"}</span>
+          </button>
+          {open && <div className="px-3 pb-3">{children}</div>}
+        </div>
+      );
+    }
+
+    function CalmCard({ title, subtitle, children, footer }) {
+      return (
+        <section className="rounded-xl border border-black/10 dark:border-white/10">
+          {(title || subtitle) && (
+            <div className="px-3 pt-3">
+              {title && <h2 className="text-lg font-semibold">{title}</h2>}
+              {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>}
+            </div>
+          )}
+          <div className="px-3 py-3">
+            {children}
+          </div>
+          {footer && <div className="px-3 pb-3">{footer}</div>}
+        </section>
+      );
+    }
+
+    /* ======= Session rendering ======= */
     function Timer({ elapsed, setElapsed, running, setRunning }) {
       const ref=useRef(null);
       useEffect(()=>{
@@ -355,7 +422,7 @@
         return ()=>{ if(ref.current){ clearInterval(ref.current); ref.current=null; } };
       },[running,setElapsed]);
       return (
-        <div className="p-4 card mb-4">
+        <div>
           <p className="text-xl font-mono text-center">{fmtHMS(elapsed)}</p>
           <div className="flex gap-2 mt-2">
             <button className="btn bg-green-600 w-full" onClick={()=>setRunning(true)}>Start</button>
@@ -384,8 +451,8 @@
               : (m.cycle && m.phase && m.session) ? `${(m.modality||'Session')[0].toUpperCase()}${(m.modality||'session').slice(1)} ${m.cycle}.${m.phase}.${m.session}` : `Today's Session`;
 
       return (
-        <div className="p-4 card mb-4">
-          <h2 className="font-semibold mb-2 text-lg">{title}</h2>
+        <div>
+          <h3 className="font-semibold mb-2 text-base">{title}</h3>
           <div className="text-base space-y-1">
             {renderSmartList(session.main || [])}
           </div>
@@ -399,15 +466,15 @@
       const [items,setItems]=useState(lsGet(key,[]));
       const [open,setOpen]=useState(false);
       useEffect(()=>{ setItems(lsGet(key,[])); },[modality,open]);
-      if(!items || items.length===0) return <div className="mb-4 text-sm text-gray-400">History (empty)</div>;
+      if(!items || items.length===0) return <div className="mb-1 text-sm text-gray-400">History (empty)</div>;
       const sorted=[...items].sort((a,b)=> new Date(b.saved_at) - new Date(a.saved_at));
       return (
-        <div className="mb-4">
+        <div>
           <button className="text-sm underline" onClick={()=>setOpen(o=>!o)}>{open?'Hide History':`Show History (${items.length})`}</button>
           {open && (
             <div className="mt-2 space-y-2">
               {sorted.map((h,idx)=>(
-                <div key={idx} className="p-3 card">
+                <div key={idx} className="p-3 rounded-xl border border-black/10 dark:border-white/10">
                   <div className="text-sm flex flex-wrap gap-3">
                     <span className="font-medium">{(h.meta&&h.meta.modality||'').toUpperCase()}</span>
                     {h.meta&&h.meta.choice && <span>• {h.meta.choice}</span>}
@@ -428,48 +495,13 @@
       );
     }
 
-    function RecoveryGate({ recovery, setRecovery, onConfirm, onSkip }) {
-      return (
-        <div className="p-4 card mb-4">
-          <p className="font-semibold mb-2">Daily Recovery Check</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
-            {[
-              ['sleep','Sleep'],['energy','Energy'],['body','Body']
-            ].map(([k,l])=>(
-              <div key={k} className="flex items-center gap-3">
-                <span className="w-16">{l}</span>
-                <input
-                  type="range" min="0" max="5" value={recovery[k]}
-                  className="w-full h-4"
-                  onChange={e=>{
-                    const next={...recovery,[k]:parseInt(e.target.value,10)};
-                    next.total=next.sleep+next.energy+next.body;
-                    next.gate=next.total>=11?'TRAIN':next.total>=7?'ACTIVE RECOVERY':'FULL REST';
-                    setRecovery(next);
-                  }}
-                />
-                <span className="w-6 text-center">{recovery[k]}</span>
-              </div>
-            ))}
-          </div>
-          <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
-          <div className="flex flex-col md:flex-row gap-2 mt-3">
-            <button className="btn bg-blue-600 w-full" onClick={onConfirm}>Continue</button>
-            <button className="btn bg-gray-600 w-full" onClick={onSkip}>Skip today</button>
-          </div>
-          <p className="text-xs text-gray-400 mt-2">We remember your choice until midnight.</p>
-        </div>
-      );
-    }
-
+    /* ======= Tests KB/BB ======= */
     const BB_REVIEW_NOTE = "If you successfully completed all prescribed reps and sets for all barbell lifts in this phase, you can increase Upper body +2.5–5% and Lower body +5–10% and start a new cycle with the heavier weight. Or continue the same cycle with the current weights and higher volume.";
-
     const BB_REVIEW_ITEMS = [
       { id:"legs", label:"Lower Body — All prescribed sets & reps completed across the phase with solid form (no missed reps / no grinders above RPE 9.5)." },
       { id:"push", label:"Upper Body Push — All prescribed sets & reps completed across the phase with solid form." },
       { id:"pull", label:"Upper Body Pull — All prescribed sets & reps completed across the phase with solid form." }
     ];
-
     const KB_TEST_ITEMS = [
       { k: "One-arm Swing", note: "10 reps each arm" },
       { k: "Get Up",        note: "1 rep each arm" },
@@ -478,7 +510,6 @@
       { k: "Double Front Squat", note: "5 reps" },
       { k: "Snatch",        note: "5 reps each arm" }
     ];
-
     function buildKbTestSession(){
       const lines = [
         "Kettlebell Test Day — Use one bell heavier than your normal bell for Test Day.",
@@ -501,7 +532,7 @@
       const kbItems = KB_TEST_ITEMS;
       const bbItems = BB_REVIEW_ITEMS;
       return (
-        <div className="p-4 card mb-4">
+        <div>
           <h2 className="font-semibold mb-2 text-lg">
             {isKB ? "Kettlebell Test Day" : "Barbell Phase Review"}
           </h2>
@@ -545,6 +576,7 @@
       );
     }
 
+    /* ======= History export helpers ======= */
     function collectAllHistory(){
       const out = {};
       for(let i=0;i<localStorage.length;i++){
@@ -609,8 +641,7 @@
       alert("All history cleared.");
     }
 
-    /* ===== ACTIVE RECOVERY: 3 OPTIES ===== */
-
+    /* ===== ACTIVE RECOVERY (3 opties + Resilient lijst) ===== */
     function chooseResilient(){
       const lines = [
         "Resilient",
@@ -658,22 +689,29 @@
       return recSession;
     }
 
+    // Kleine GFM flow "generator" (shuffle uit een pool)
+    const GFM_POOL = [
+      "Rockback → Head Nod",
+      "Seated S Switch",
+      "Half-kneeling Halo",
+      "Tall-kneeling Bow & Arrow",
+      "Beast to Crab",
+      "Side Sit → Shin Box Switch",
+      "Seated Egyptian",
+      "Crawl → Crab",
+      "Pike → Tabletop → Crab",
+      "Prone Swimmer",
+      "Scorpion Reach",
+      "Lateral Ape",
+      "Crab Reach",
+      "Bear Crawl (forward/back)",
+    ];
     function chooseGFMFlow(){
-      const flow = [
-        "GFM Flow (~20 min):",
-        "* Rockback → Head Nod",
-        "* Seated S Switch",
-        "* Half-kneeling Halo",
-        "* Tall-kneeling Bow & Arrow",
-        "* Beast to Crab",
-        "* Side Sit → Shin Box Switch",
-        "* Seated Egyptian",
-        "* Crawl → Crab",
-        "* Pike → Tabletop → Crab",
-        "* Prone Swimmer"
-      ];
-      const recSession = { main: flow, meta: { modality:'recovery', date:new Date().toISOString(), choice:'GFM Flow' } };
-      return recSession;
+      const pool = GFM_POOL.slice();
+      for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+      const pick = pool.slice(0,10); // ~10 items ~20 min
+      const lines = ["GFM Flow (~20 min):", ...pick.map(s=>"* "+s)];
+      return { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'GFM Flow' } };
     }
 
     function chooseZone2Only(){
@@ -681,10 +719,10 @@
         "Zone #2",
         "* Do 30 minutes of continuous Zone 2 cardio (walking, cycling, rowing, etc.)."
       ];
-      const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Zone #2' } };
-      return recSession;
+      return { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Zone #2' } };
     }
 
+    /* =================== App =================== */
     function App(){
       const [modality,setModality]=useState(lsGet("modality","kettlebell"));
       useEffect(()=>lsSet("modality",modality),[modality]);
@@ -711,7 +749,44 @@
         const c=(lsGet(k,0)||0)+1; lsSet(k,c); setRecoveryCount(c);
       }
 
+      // Suggestie: random uit 2 andere modalities
+      const [lastCompletedModality, setLastCompletedModality] = useState(lsGet("lastCompletedModality", null));
+      const [suggestion, setSuggestion] = useState(null);
+
+      function engineFor(m){ return m==='kettlebell'?SFG : m==='barbell'?SFL : SFB; }
+      function currentKey(m){ return `current:${m}`; }
+      function historyKey(m){ return `history:${m}`; }
+
+      function ensurePinnedFor(mod){
+        let cur = lsGet(currentKey(mod), null);
+        if(!cur){
+          const eng = engineFor(mod);
+          const s = eng.generate_single_session();
+          s.meta.modality = mod;
+          lsSet(currentKey(mod), s);
+          cur = s;
+        }
+        return cur;
+      }
+      function recomputeSuggestion(baseMod = null){
+        const last = baseMod || lastCompletedModality || getLatestMainModalityFromHistory() || lsGet("last_modality", null);
+        const pool = ["kettlebell","barbell","bodyweight"];
+        const candidates = last ? pool.filter(m=>m!==last) : pool;
+        if(candidates.length===0){ setSuggestion(null); return; }
+        const pick = candidates[Math.floor(Math.random()*candidates.length)];
+        const pinned = ensurePinnedFor(pick);
+        setSuggestion({ modality: pick, session: pinned });
+      }
+
       useEffect(()=>{
+        // initial pin for current modality
+        const cur=lsGet(currentKey(modality),null);
+        setSession(cur);
+        setElapsed(0); setRunning(false);
+      },[modality]);
+
+      useEffect(()=>{
+        // Gate routing on mount / toggle
         if(recoveryMode==="gate"){
           const stamp = lsGet("recovery:stamp", null);
           const today = todayStr();
@@ -721,21 +796,10 @@
         }
       },[recoveryMode]);
 
-      const [lastModalityStored] = useState(lsGet("last_modality", null));
-      const lastModalityVisual = useMemo(()=>{
-        return getLatestMainModalityFromHistory() || lastModalityStored || null;
-      }, [session, route, lastModalityStored, modality, recoveryMode]);
-
-      const currentKey = (m) => `current:${m}`;
-      const historyKey = (m) => `history:${m}`;
-
-      function engineFor(m){ return m==='kettlebell'?SFG : m==='barbell'?SFL : SFB; }
-
       useEffect(()=>{
-        const cur=lsGet(currentKey(modality),null);
-        setSession(cur);
-        setElapsed(0); setRunning(false);
-      },[modality]);
+        // compute suggestion on mount & when lastCompleted changes
+        recomputeSuggestion();
+      },[lastCompletedModality]);
 
       function toggleDark(){ document.documentElement.classList.toggle('dark'); }
 
@@ -767,6 +831,7 @@
         try{localStorage.removeItem(currentKey(modality));}catch(e){}
         setSession(null); setElapsed(0); setRunning(false);
         alert('Reset to 1.1.1 for '+modality);
+        recomputeSuggestion();
       }
       function generateCycle(){
         const eng=engineFor(modality);
@@ -776,6 +841,7 @@
         lsSet(currentKey(modality),s);
         setSession(s);
         setElapsed(0); setRunning(false);
+        recomputeSuggestion();
       }
       function saveToHistory(s, mod){
         const m = mod || modality;
@@ -825,7 +891,7 @@
         setElapsed(0); setRunning(false);
       }
 
-      // ====== Active Recovery keuze (exact 3 opties) ======
+      // Recovery chooser: 3 opties
       function openRecoverySession(kind){
         let rec=null;
         if(kind==='resilient'){ rec = chooseResilient(); }
@@ -872,6 +938,7 @@
           setSession(next);
           setTestChecks({});
           setTestPassed(false);
+          recomputeSuggestion(next.meta.modality);
         }
       }
       function startNewCycle(){
@@ -885,6 +952,7 @@
         setSession(next);
         setTestChecks({});
         setTestPassed(false);
+        recomputeSuggestion(next.meta.modality);
       }
       function continueThisCycle(){
         const isKB = (session?.meta?.modality === 'kettlebell_test');
@@ -908,6 +976,7 @@
         setSession(next);
         setTestChecks({});
         setTestPassed(false);
+        recomputeSuggestion(next.meta.modality);
       }
 
       function completeSession(){
@@ -939,7 +1008,7 @@
         // Strength: opslaan
         saveToHistory(session, metaMod || modality);
 
-        // Phase-end gedrag: KB/BB -> test/review; Bodyweight -> door naar volgende fase
+        // Phase-end gedrag: KB/BB -> test/review; Bodyweight -> volgende fase
         if (session?.meta?.phase_end && (modality==='kettlebell' || modality==='barbell')){
           if(modality==='kettlebell'){
             const t = buildKbTestSession();
@@ -947,6 +1016,8 @@
             setSession(t);
             setTestChecks({});
             setTestPassed(false);
+            setLastCompletedModality('kettlebell'); lsSet("lastCompletedModality",'kettlebell');
+            recomputeSuggestion('kettlebell');
             return;
           }
           if(modality==='barbell'){
@@ -955,6 +1026,8 @@
             setSession(t);
             setTestChecks({});
             setTestPassed(false);
+            setLastCompletedModality('barbell'); lsSet("lastCompletedModality",'barbell');
+            recomputeSuggestion('barbell');
             return;
           }
         } else if (session?.meta?.phase_end && modality==='bodyweight'){
@@ -973,6 +1046,8 @@
           lsSet(`current:bodyweight`, next);
           setSession(next);
           setElapsed(0);
+          setLastCompletedModality('bodyweight'); lsSet("lastCompletedModality",'bodyweight');
+          recomputeSuggestion('bodyweight');
           return;
         }
 
@@ -983,47 +1058,117 @@
         lsSet(currentKey(modality),s);
         setSession(s);
         setElapsed(0);
+
+        // Voor suggestie: onthoud laatst voltooide modality
+        setLastCompletedModality(modality);
+        lsSet("lastCompletedModality", modality);
+        recomputeSuggestion(modality);
       }
 
-      if (recoveryMode==="gate" && route==="gate") {
-        return (
-          <div className="mx-auto w-full max-w-md md:max-w-2xl min-h-screen flex items-start pt-4">
-            <div className="w-full px-4">
-              <div className="text-center mb-3">
-                <h1 className="text-3xl font-bold">EverStrong</h1>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Daily Recovery Check</p>
+      /* ======= UI: Tabs + Calm layout ======= */
+      const [activeTab, setActiveTab] = useState(lsGet("ui:tab","train"));
+      useEffect(()=>lsSet("ui:tab",activeTab),[activeTab]);
+      const [calm, setCalm] = useState(lsGet("ui:calm", true));
+
+      // Pages
+      const PageTrain = (
+        <>
+          {/* Suggested Next (random uit 2 andere modalities) */}
+          {suggestion && suggestion.session && (
+            <CalmCard title="Suggested Next">
+              <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                Based on your last session, try this next:
+              </p>
+              <button
+                className="btn bg-blue-600 w-full"
+                onClick={()=>{
+                  setModality(suggestion.modality);
+                  const pinned = ensurePinnedFor(suggestion.modality);
+                  setSession(pinned);
+                }}
+              >
+                {suggestion.modality.charAt(0).toUpperCase()+suggestion.modality.slice(1)} — {suggestion.session.meta.cycle}.{suggestion.session.meta.phase}.{suggestion.session.meta.session}
+              </button>
+            </CalmCard>
+          )}
+
+          {/* Quick Switch */}
+          <CalmCard title="Choose Modality">
+            <ModalityToggles
+              modality={session?.meta?.modality==='hiit'?'bodyweight':modality}
+              setModality={m=>{ if(m==='hiit')return; setModality(m); const cur=ensurePinnedFor(m); setSession(cur); }}
+              lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
+            />
+          </CalmCard>
+
+          {!session && (
+            <CalmCard title="Get started">
+              <div className="flex flex-col gap-2">
+                <button onClick={generateCycle} className="btn bg-blue-600 w-full">Generate Cycle (start at 1.1.1)</button>
+                <div className="flex gap-2">
+                  <button onClick={openWarmup} className="btn bg-emerald-700 w-full">Warm-up</button>
+                  <button onClick={openHiitChooser} className="btn bg-indigo-600 w-full">Inferno HIIT</button>
+                </div>
               </div>
-              <RecoveryGate
-                recovery={recovery}
-                setRecovery={setRecovery}
-                onConfirm={handleGateConfirm}
-                onSkip={handleGateSkip}
-              />
-              <p className="text-[11px] text-center text-gray-500 mt-3">You’ll see training options after you confirm.</p>
-            </div>
-          </div>
-        );
-      }
+            </CalmCard>
+          )}
 
-      const hasPinned = !!session;
-      const isHIIT = session?.meta?.modality==='hiit';
+          {session && (
+            <CalmCard title="Session" subtitle="Pinned until Complete">
+              {(session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test')
+                ? (
+                  <TestView
+                    modality={session.meta.modality==='kettlebell_test' ? 'kettlebell' : 'barbell'}
+                    testChecks={testChecks}
+                    setTestChecks={setTestChecks}
+                    testPassed={testPassed}
+                    onSubmit={submitTestResult}
+                    onStartNewCycle={startNewCycle}
+                    onContinueCycle={continueThisCycle}
+                  />
+                ) : (
+                  <SessionView session={session}/>
+                )
+              }
+              <div className="flex gap-2 mt-2">
+                {session?.meta?.modality==='warmup' ? (
+                  <button
+                    onClick={()=>{ try{localStorage.removeItem(`current:warmup`);}catch(e){}; setSession(null); }}
+                    className="btn-sm bg-gray-600 w-full"
+                    title="Close warm-up (not saved)"
+                  >
+                    Close Warm-up
+                  </button>
+                ) : (
+                  <>
+                    <button onClick={completeSession} className="btn-sm bg-green-600 w-1/2" disabled={!session}>Complete</button>
+                    {session?.meta?.modality!=='warmup' && (
+                      <button onClick={openWarmup} className="btn-sm bg-emerald-700 w-1/2">Warm-up</button>
+                    )}
+                  </>
+                )}
+              </div>
+            </CalmCard>
+          )}
 
-      return (
-        <div className="mx-auto w-full max-w-md md:max-w-2xl">
-          <Header
-            onHiit={openHiitChooser}
-            onToggleDark={toggleDark}
-            onRestart={restartSelected}
-            recoveryMode={recoveryMode}
-            setRecoveryMode={setRecoveryMode}
-            recoveryCount={recoveryCount}
-            recoveryMax={REC_MAX}
-          />
+          {session && !['warmup','breathing','recovery','kettlebell_test','barbell_test','hiit'].includes(session?.meta?.modality) && (
+            <CalmCard title="Performance">
+              <PerformanceForm session={session} onChange={updatePerformance}/>
+            </CalmCard>
+          )}
 
+          <CalmCard title="Timer">
+            <Timer elapsed={elapsed} setElapsed={setElapsed} running={running} setRunning={setRunning} />
+          </CalmCard>
+        </>
+      );
+
+      const PageRecovery = (
+        <>
+          {/* Gate mode: toon Daily Recovery Check vóór keuzes (inline = optioneel in settings) */}
           {recoveryMode==="inline" && (
-            <div className="p-4 card mb-4">
-              <p className="font-semibold mb-2">Recovery Check</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+            <Accordion title="Recovery Check" defaultOpen>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-1">
                 {[
                   ['sleep','Sleep'],['energy','Energy'],['body','Body']
                 ].map(([k,l])=>(
@@ -1041,161 +1186,218 @@
                 ))}
               </div>
               <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
-              {recovery.total>=7 && recovery.total<=10 && (
-                <>
-                  <p className="text-xs text-gray-400 mt-3">Active Recovery — Kies exact één optie:</p>
-                  <div className="flex flex-col gap-2 mt-2">
-                    <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('resilient')}>Resilient</button>
-                    <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('gfm')}>GFM Flow</button>
-                    <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('zone2')}>Zone #2</button>
-                  </div>
-                </>
-              )}
-              {recovery.total<7 && (
-                <div className="mt-3 space-y-2">
-                  <p className="text-xs text-gray-400">Rest Day — Breathing (Bottom Triangle). Choose one and practice 5–20 minutes:</p>
-                  {REST_BREATHING_OPTIONS.map((opt, idx)=>(
-                    <div key={idx} className="p-3 rounded bg-gray-800">
-                      <p className="font-medium">{opt.level} — {opt.name}</p>
-                      <p className="text-sm">{opt.pattern}</p>
-                      <p className="text-xs italic">{opt.note}</p>
+            </Accordion>
+          )}
+
+          <Accordion title="Active Recovery (choose one)" defaultOpen>
+            <div className="flex flex-col md:flex-row gap-2">
+              <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('resilient')}>Resilient</button>
+              <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('gfm')}>GFM Flow</button>
+              <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('zone2')}>Zone #2</button>
+            </div>
+          </Accordion>
+
+          {session?.meta?.modality==='recovery' && (
+            <CalmCard title="Pinned Recovery" subtitle="Pinned until Complete">
+              <SessionView session={session}/>
+              <div className="flex gap-2 mt-2">
+                <button onClick={completeSession} className="btn-sm bg-green-600 w-full">Complete</button>
+              </div>
+            </CalmCard>
+          )}
+
+          <Accordion title="Recovery History">
+            <History modality="recovery" />
+            <div className="mt-3">
+              <button
+                className="btn bg-gray-700 w-full disabled:opacity-40"
+                onClick={()=>{
+                  const dlg = document.getElementById('addRecoveryDlg');
+                  dlg?.showModal();
+                }}
+                disabled={recoveryCount >= REC_MAX}
+                title={recoveryCount >= REC_MAX ? "Daily recovery limit reached" : "Add another recovery block"}
+              >
+                Log another recovery
+              </button>
+              <p className="text-[11px] text-gray-500 mt-1">
+                {recoveryCount >= REC_MAX ? "Daily limit reached (2)." : "You can log up to 2 recovery blocks per day."}
+              </p>
+            </div>
+          </Accordion>
+
+          {/* Simple chooser dialog */}
+          <dialog id="addRecoveryDlg" className="rounded-xl p-0 w-80 bg-white dark:bg-gray-900 border border-black/10 dark:border-white/10">
+            <div className="p-3 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
+              <span className="font-semibold">Add Recovery</span>
+              <button onClick={()=>document.getElementById("addRecoveryDlg").close()} className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">✕</button>
+            </div>
+            <div className="p-3 space-y-2">
+              <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('resilient'); document.getElementById("addRecoveryDlg").close(); }}>Resilient</button>
+              <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('gfm'); document.getElementById("addRecoveryDlg").close(); }}>GFM Flow</button>
+              <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('zone2'); document.getElementById("addRecoveryDlg").close(); }}>Zone #2</button>
+            </div>
+          </dialog>
+        </>
+      );
+
+      const PageHistory = (
+        <CalmCard title="History">
+          <History modality={(session && session.meta && session.meta.modality) ? session.meta.modality : modality} />
+        </CalmCard>
+      );
+
+      const PageExport = (
+        <CalmCard title="Export & Maintenance">
+          <div className="flex flex-col md:flex-row gap-2">
+            <button className="btn bg-gray-700 w-full" onClick={exportJSON}>Export JSON</button>
+            <button className="btn bg-gray-700 w-full" onClick={exportCSV}>Export CSV</button>
+            <button className="btn bg-red-700 w-full" onClick={clearAllHistory}>Reset History (All)</button>
+          </div>
+        </CalmCard>
+      );
+
+      const PageSettings = (
+        <CalmCard title="Settings">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Calm mode (softer UI)</span>
+              <input type="checkbox" checked={lsGet('ui:calm', true)} onChange={(e)=>{ lsSet('ui:calm', e.target.checked); location.reload(); }} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm">Recovery mode</span>
+              <button
+                className="px-3 py-1 rounded-lg text-sm bg-gray-700"
+                onClick={()=>setRecoveryMode(m=> m==="gate" ? "inline" : "gate")}
+              >
+                {recoveryMode === "gate" ? "Gate" : "Inline"}
+              </button>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Default Modality</p>
+              <div className="mt-1">
+                <ModalityToggles
+                  modality={session?.meta?.modality==='hiit'?'bodyweight':modality}
+                  setModality={m=>{ if(m==='hiit')return; setModality(m); const cur=ensurePinnedFor(m); setSession(cur); }}
+                  lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={openWarmup} className="btn bg-emerald-700 w-full">Warm-up</button>
+              <button onClick={openHiitChooser} className="btn bg-indigo-600 w-full">Inferno HIIT</button>
+            </div>
+            <div>
+              <button onClick={restartSelected} className="btn bg-amber-600 w-full">Restart Current Modality</button>
+            </div>
+          </div>
+        </CalmCard>
+      );
+
+      function pageByTab(id){
+        if(id==='train') return PageTrain;
+        if(id==='recovery') return PageRecovery;
+        if(id==='history') return PageHistory;
+        if(id==='export') return PageExport;
+        if(id==='settings') return PageSettings;
+        return PageTrain;
+      }
+
+      // Gate mode landing (Daily Recovery Check vóór training)
+      if (recoveryMode==="gate" && route==="gate") {
+        return (
+          <div className="mx-auto w-full max-w-md md:max-w-2xl min-h-screen flex items-start pt-4">
+            <div className="w-full px-4">
+              <div className="text-center mb-3">
+                <h1 className="text-3xl font-bold">EverStrong</h1>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">Daily Recovery Check</p>
+              </div>
+              <div className="border border-black/10 dark:border-white/10 rounded-xl p-4 mb-4">
+                <p className="font-semibold mb-2">Daily Recovery Check</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
+                  {[
+                    ['sleep','Sleep'],['energy','Energy'],['body','Body']
+                  ].map(([k,l])=>(
+                    <div key={k} className="flex items-center gap-3">
+                      <span className="w-16">{l}</span>
+                      <input
+                        type="range" min="0" max="5" value={recovery[k]}
+                        className="w-full h-4"
+                        onChange={e=>{
+                          const next={...recovery,[k]:parseInt(e.target.value,10)};
+                          next.total=next.sleep+next.energy+next.body;
+                          next.gate=next.total>=11?'TRAIN':next.total>=7?'ACTIVE RECOVERY':'FULL REST';
+                          setRecovery(next);
+                        }}
+                      />
+                      <span className="w-6 text-center">{recovery[k]}</span>
                     </div>
                   ))}
                 </div>
-              )}
-            </div>
-          )}
-
-          {(recoveryMode==='gate' && route==='fullrest') && (
-            <div className="p-4 card mb-4">
-              <p className="font-semibold mb-2">Rest Day — Breathing (Bottom Triangle)</p>
-              <div className="space-y-2">
-                {REST_BREATHING_OPTIONS.map((opt, idx)=>(
-                  <div key={idx} className="p-3 rounded bg-gray-800">
-                    <p className="font-medium">{opt.level} — {opt.name}</p>
-                    <p className="text-sm">{opt.pattern}</p>
-                    <p className="text-xs italic">{opt.note}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Snel nog een recovery-sessie (max 2 per dag) */}
-          {(route==='recovery' && recoveryCount < REC_MAX) && (
-            <div className="p-4 card mb-4">
-              <p className="font-semibold mb-2">Nog een herstelblok vandaag?</p>
-              <div className="flex flex-col md:flex-row gap-2">
-                <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('resilient')}>Resilient</button>
-                <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('gfm')}>GFM Flow</button>
-                <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('zone2')}>Zone #2</button>
-              </div>
-            </div>
-          )}
-
-          <ModalityToggles
-            modality={isHIIT?'bodyweight':modality}
-            setModality={m=>{ if(m==='hiit')return; setModality(m); }}
-            lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
-          />
-
-          <div className="p-4 card mb-4">
-            <div className="flex flex-col gap-2">
-              {!hasPinned && (
-                <button onClick={generateCycle} className="btn bg-blue-600 w-full">
-                  Generate Cycle (start at 1.1.1)
-                </button>
-              )}
-              <button onClick={openWarmup} className="btn bg-emerald-700 w-full">
-                Warm-up
-              </button>
-              {isHIIT && (
-                <div className="flex flex-col md:flex-row gap-2">
-                  {[300,400,500].map(val=>(
-                    <button key={val} onClick={()=>pinInferno(val)} className="btn bg-indigo-600 w-full">
-                      New Inferno {val}
-                    </button>
-                  ))}
+                <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
+                <div className="flex flex-col md:flex-row gap-2 mt-3">
+                  <button className="btn bg-blue-600 w-full" onClick={()=>{
+                    const routeChosen = (recovery.total||0)>=11 ? "train" : ( (recovery.total||0)>=7 ? "recovery" : "fullrest");
+                    lsSet("recovery:stamp", todayStr());
+                    lsSet("recovery:lastRoute", routeChosen);
+                    setRoute(routeChosen);
+                  }}>Continue</button>
+                  <button className="btn bg-gray-600 w-full" onClick={handleGateSkip}>Skip today</button>
                 </div>
-              )}
+                <p className="text-xs text-gray-400 mt-2">We remember your choice until midnight.</p>
+              </div>
+              <p className="text-[11px] text-center text-gray-500 mt-3">You'll see training options after you confirm.</p>
             </div>
           </div>
+        );
+      }
 
-          {session && (session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test')
-            ? (
-              <TestView
-                modality={session.meta.modality==='kettlebell_test' ? 'kettlebell' : 'barbell'}
-                testChecks={testChecks}
-                setTestChecks={setTestChecks}
-                testPassed={testPassed}
-                onSubmit={submitTestResult}
-                onStartNewCycle={startNewCycle}
-                onContinueCycle={continueThisCycle}
-              />
-            ) : (
-              <SessionView session={session}/>
-            )
-          }
+      return (
+        <AppShell
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          onToggleDark={toggleDark}
+          calm={calm}
+          setCalm={setCalm}
+          recoveryMode={recoveryMode}
+          setRecoveryMode={setRecoveryMode}
+          recoveryCount={recoveryCount}
+          REC_MAX={REC_MAX}
+        >
+          {pageByTab(activeTab)}
+        </AppShell>
+      );
+    }
 
-          <div className="flex gap-2 mb-4">
-            {session?.meta?.modality==='warmup' ? (
-              <button
-                onClick={()=>{ try{localStorage.removeItem(`current:warmup`);}catch(e){}; setSession(null); }}
-                className="btn-sm bg-gray-600 w-full"
-                title="Close warm-up (not saved)"
-              >
-                Close Warm-up
-              </button>
-            ) : session && (session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test') ? (
-              <button
-                onClick={()=>{ setSession(null); }}
-                className="btn-sm bg-gray-600 w-full"
-                title="Close test view (pinned test remains until submitted)"
-              >
-                Close Test View
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={completeSession}
-                  className="btn-sm bg-green-600 w-1/2"
-                  disabled={!session}
-                  title={!session ? "No pinned session" : "Save this session"}
-                >
-                  Complete
-                </button>
-                {session?.meta?.modality!=='warmup' && (
-                  <button
-                    onClick={openWarmup}
-                    className="btn-sm bg-emerald-700 w-1/2"
-                    title="Open fixed warm-up routine (not saved)"
-                  >
-                    Warm-up
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-
-          {session && !['warmup','breathing','recovery','kettlebell_test','barbell_test','hiit'].includes(session?.meta?.modality) && (
-            <PerformanceForm session={session} onChange={updatePerformance}/>
-          )}
-          <Timer elapsed={elapsed} setElapsed={setElapsed} running={running} setRunning={setRunning} />
-
-          <History modality={(session && session.meta && session.meta.modality) ? session.meta.modality : modality} />
-
-          <div className="p-4 card mb-4">
-            <p className="font-semibold mb-2">Export & Maintenance</p>
-            <div className="flex flex-col md:flex-row gap-2">
-              <button className="btn bg-gray-700 w-full" onClick={exportJSON}>Export JSON</button>
-              <button className="btn bg-gray-700 w-full" onClick={exportCSV}>Export CSV</button>
-              <button className="btn bg-red-700 w-full" onClick={clearAllHistory} title="Delete all history across all modalities">Reset History (All)</button>
-            </div>
-          </div>
-
-          <footer className="text-xs text-center mt-6 text-gray-400 pb-[calc(env(safe-area-inset-bottom)+8px)]">
-            Kettlebell • Barbell • Bodyweight • Inferno • Warm-up • Recovery (Resilient / GFM Flow / Zone #2) • Breathing
-          </footer>
+    /* ======= Modality Toggles / Performance ======= */
+    function ModalityToggles({ modality, setModality, lastModalityVisual }) {
+      function Item({ id, label }){
+        const active = (modality===id);
+        const wasLast = (id===lastModalityVisual);
+        let base = "px-3 py-2 rounded-lg cursor-pointer text-sm relative transition";
+        let cls = base + " ";
+        if (active && wasLast) {
+          cls += "bg-blue-600 text-white ring-2 ring-red-400";
+        } else if (active) {
+          cls += "bg-blue-600 text-white";
+        } else if (wasLast) {
+          cls += "bg-gray-200 dark:bg-gray-800 ring-2 ring-red-400";
+        } else {
+          cls += "bg-gray-200 dark:bg-gray-800";
+        }
+        return (
+          <label className={cls} title={wasLast ? "Last used" : ""}>
+            <input type="radio" name="modality" className="hidden" checked={active} onChange={()=>setModality(id)} />
+            {label}
+            {wasLast && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full" aria-hidden />}
+          </label>
+        );
+      }
+      return (
+        <div className="flex flex-wrap gap-2">
+          <Item id="kettlebell" label="Kettlebell" />
+          <Item id="barbell" label="Barbell" />
+          <Item id="bodyweight" label="Bodyweight" />
         </div>
       );
     }
@@ -1206,8 +1408,7 @@
       const isStrength = ["kettlebell","barbell","bodyweight"].includes(m.modality);
       if(!isStrength) return null;
       return (
-        <div className="p-4 card mb-4">
-          <p className="font-semibold mb-2">Performance</p>
+        <div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div>
               <label className="text-xs text-gray-400">Load</label>
@@ -1237,3 +1438,4 @@
   </script>
 </body>
 </html>
+
