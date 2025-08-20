@@ -16,6 +16,7 @@
     .btn { border-radius:.9rem; padding:.75rem 1rem; }
     .btn-sm { border-radius:.7rem; padding:.5rem .75rem; font-size:.9rem; }
     .safe { padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
+    .pill { border:1px solid rgba(255,255,255,.12); border-radius:999px; padding:.35rem .7rem; font-size:.8rem; }
   </style>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 dark:text-gray-100 min-h-screen">
@@ -34,6 +35,10 @@
       return `${hh}:${mm}:${ss}`;
     }
     function todayStr(){ return new Date().toDateString(); }
+    function todayKey(){
+      const d=new Date(); const y=d.getFullYear(); const m=('0'+(d.getMonth()+1)).slice(-2); const day=('0'+d.getDate()).slice(-2);
+      return `${y}-${m}-${day}`;
+    }
     function getLatestMainModalityFromHistory(){
       const keys = ["history:kettlebell","history:barbell","history:bodyweight"];
       let best = null, bestDate = 0;
@@ -152,7 +157,6 @@
 
     /* ================= ENGINES ================= */
 
-    // Kettlebell — OK (36 sessions; volumes 10/20/30, 15/25/40, 20/30/50)
     const SFG = createEngine({
       key:'everstrong:sfg:v1',
       patterns:{
@@ -168,7 +172,6 @@
       sessionsPerCycle:36
     });
 
-    // 🔧 Barbell — FIXED (strict per phase: 10/20/30 • 15/25/40 • 20/30/50)
     const SFL = createEngine({
       key:'everstrong:sfl:v2',
       patterns:{
@@ -176,15 +179,10 @@
         "Push Pattern":["Bench Press","Incline Bench Press","Shoulder Press"],
         "Pull Pattern":["Conventional Deadlift","Goodmorning","Sumo Deadlift"]
       },
-      cycleVolumes:{
-        1:{low:10,medium:20,high:30},
-        2:{low:15,medium:25,high:40},
-        3:{low:20,medium:30,high:50}
-      },
+      cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
       sessionsPerCycle:18
     });
 
-    // Bodyweight — OK (18 sessions; same phase volumes as barbell)
     const SFB = createEngine({
       key:'everstrong:sfb:v1',
       patterns:{
@@ -255,7 +253,7 @@
       };
     })();
 
-    /* ============== Breathing (Rest days only) ============== */
+    /* ======= Rest/Breathing ======= */
     const REST_BREATHING_OPTIONS = [
       { level:"Beginner", name:"Bottom Triangle 4-4-4", pattern:"Inhale 4s • Exhale 4s • Hold 4s (bottom)", note:"Practice 5–20 minutes." },
       { level:"Intermediate", name:"Bottom Triangle 4-6-8", pattern:"Inhale 4s • Exhale 6s • Hold 8s (bottom)", note:"Practice 5–20 minutes." },
@@ -292,7 +290,7 @@
       return out;
     }
 
-    function Header({ onHiit, onToggleDark, onRestart, recoveryMode, setRecoveryMode }) {
+    function Header({ onHiit, onToggleDark, onRestart, recoveryMode, setRecoveryMode, recoveryCount, recoveryMax }) {
       return (
         <header className="text-center mb-4">
           <h1 className="text-3xl md:text-4xl font-bold">EverStrong</h1>
@@ -306,6 +304,7 @@
               >
                 Recovery: {recoveryMode === "gate" ? "Gate" : "Inline"}
               </button>
+              <span className="pill text-gray-400">Recovery today: {recoveryCount}/{recoveryMax}</span>
             </div>
             <div className="flex gap-2">
               <button onClick={onHiit} className="text-sm text-blue-400 underline">I Feel Like HIIT Today</button>
@@ -412,7 +411,7 @@
                   <div className="text-sm flex flex-wrap gap-3">
                     <span className="font-medium">{(h.meta&&h.meta.modality||'').toUpperCase()}</span>
                     {h.meta&&h.meta.choice && <span>• {h.meta.choice}</span>}
-                    {h.meta&&h.meta.cycle!=null&&h.meta.phase!=null&&h.meta.session!=null && <span>• {h.meta.cycle}.{h.meta.phase}.{h.meta.session}</span>}
+                    {h.meta&&h.meta.cycle!=null&&h.meta.session!=null && <span>• {h.meta.cycle}.{h.meta.phase}.{h.meta.session}</span>}
                     {h.meta && h.meta.date && <span>• {new Date(h.meta.date).toLocaleString()}</span>}
                     <span>• {new Date(h.saved_at).toLocaleString()}</span>
                     {h.timer_seconds>0 && <span>• Time: {fmtHMS(h.timer_seconds)}</span>}
@@ -610,6 +609,82 @@
       alert("All history cleared.");
     }
 
+    /* ===== ACTIVE RECOVERY: 3 OPTIES ===== */
+
+    function chooseResilient(){
+      const lines = [
+        "Resilient",
+        "",
+        "Hack Squat",
+        "* 2×5–8",
+        "Jefferson Curl",
+        "* 2×5 (slow, full control)",
+        "Hockey Deadlift",
+        "* 2×5–8",
+        "Bretzell (Stretch)",
+        "* 2×20–30 sec per side",
+        "Bretzel Armbar",
+        "* 2×3–5 per side",
+        "Arm Bar",
+        "* 2×3–5 per side",
+        "Bent Arm Bar + Press",
+        "* 2×3–5 per side",
+        "Get Up Arm Rotations",
+        "* 3–5 per side",
+        "Get Up Neck Rotations",
+        "* 3–5 per side",
+        "SOS Get Up",
+        "* 2–3 per side",
+        "",
+        "Hanging Series",
+        "* Front Lever (tuck) — 3–5 sec holds × 3",
+        "* Skin the Cat — 3–5 smooth reps",
+        "* Active Hang — 2×10–20 sec",
+        "* Passive Hang — 2×20–30 sec",
+        "* Arm & Leg Movement — 2×5–8",
+        "* Jump & Brace — 3–5 jumps",
+        "",
+        "Elevated Gymnastic Bridge Series",
+        "* Bridge Hold — 2×10–20 sec",
+        "Hip Flexor Stretch Overhead Kettlebell",
+        "* 2×20–30 sec per side",
+        "",
+        "Neck Series",
+        "* Flexion / Extension — 5–8 each",
+        "* Lateral Tilt — 5–8 each",
+        "* Rotation — 5–8 each"
+      ];
+      const recSession = { main: lines, meta: { modality:'recovery', date: new Date().toISOString(), choice:'Resilient' } };
+      return recSession;
+    }
+
+    function chooseGFMFlow(){
+      const flow = [
+        "GFM Flow (~20 min):",
+        "* Rockback → Head Nod",
+        "* Seated S Switch",
+        "* Half-kneeling Halo",
+        "* Tall-kneeling Bow & Arrow",
+        "* Beast to Crab",
+        "* Side Sit → Shin Box Switch",
+        "* Seated Egyptian",
+        "* Crawl → Crab",
+        "* Pike → Tabletop → Crab",
+        "* Prone Swimmer"
+      ];
+      const recSession = { main: flow, meta: { modality:'recovery', date:new Date().toISOString(), choice:'GFM Flow' } };
+      return recSession;
+    }
+
+    function chooseZone2Only(){
+      const lines = [
+        "Zone #2",
+        "* Do 30 minutes of continuous Zone 2 cardio (walking, cycling, rowing, etc.)."
+      ];
+      const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Zone #2' } };
+      return recSession;
+    }
+
     function App(){
       const [modality,setModality]=useState(lsGet("modality","kettlebell"));
       useEffect(()=>lsSet("modality",modality),[modality]);
@@ -622,6 +697,19 @@
       const [route, setRoute] = useState("gate");
       const [recoveryMode, setRecoveryMode] = useState(lsGet("recovery:mode","gate"));
       useEffect(()=>lsSet("recovery:mode", recoveryMode),[recoveryMode]);
+
+      // per-day recovery counter (max 2)
+      const REC_MAX = 2;
+      const [recoveryCount,setRecoveryCount]=useState(lsGet(`recovery:count:${todayKey()}`,0));
+      useEffect(()=>{
+        const k=`recovery:count:${todayKey()}`;
+        const cur=lsGet(k,null);
+        if(cur===null){ lsSet(k,0); setRecoveryCount(0); }
+      },[]);
+      function incRecoveryCount(){
+        const k=`recovery:count:${todayKey()}`;
+        const c=(lsGet(k,0)||0)+1; lsSet(k,c); setRecoveryCount(c);
+      }
 
       useEffect(()=>{
         if(recoveryMode==="gate"){
@@ -737,59 +825,14 @@
         setElapsed(0); setRunning(false);
       }
 
-      function chooseMobility(){
-        const lines = [
-          "Mobility — do 5–10 smooth reps per movement",
-          "",
-          "Hips",
-          "* Figure 4 position",
-          "* Figure 4 lunge",
-          "* Half heel sit",
-          "* Z position switches & Z position side roll",
-          "* Hip Openers – Prone → TGU → Bridge",
-          "",
-          "Shoulders",
-          "* The Egyptian (Seated, Pike, Prone)",
-          "* S movement (Seated, Pike, Prone)",
-          "* Figure 8 in Crawl (6-point & 4-point)",
-          "* Crawl → Crab",
-          "* Pike → Tabletop",
-          "",
-          "Ankles",
-          "* Ankle series (Up & down, In & out, Rotations)",
-          "* Figure 8’s (toes & ankle)",
-          "* Snail",
-          "* Crawl → Frog → Crab transitions",
-          "",
-          "Spine & Neck",
-          "* Supine neck rolls (L ↔ R)",
-          "* Hand on knee rolling",
-          "* Segmental rolling (Neck, arms & legs)",
-          "* Forward & backward rolling",
-          "",
-          "Wrists",
-          "* Finger waves",
-          "* Hand circles",
-          "* Teapot"
-        ];
-        const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Mobility' } };
-        lsSet(`current:recovery`, recSession);
-        setSession(recSession);
-        setElapsed(0); setRunning(false);
-      }
-      function chooseFlowPlusZone2(){
-        const flow = ["1) Rockback → Head Nod","2) Seated S Switch","3) Half-kneeling Halo","4) Tall-kneeling Bow & Arrow","5) Beast to Crab","6) Side Sit → Shin Box Switch","7) Seated Egyptian","8) Crawl → Crab","9) Pike → Tabletop → Crab","10) Prone Swimmer"];
-        const lines = ["Flow (~20 min):", ...flow, "", "Then: 30 min Zone 2 cardio (run/bike/row)"];
-        const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Flow + Zone 2' } };
-        lsSet(`current:recovery`, recSession);
-        setSession(recSession);
-        setElapsed(0); setRunning(false);
-      }
-      function chooseZone2Only(){
-        const lines = ["Zone 2 only:", "* Do 30 min continuous Zone 2 cardio (run, bike, row, etc.)."];
-        const recSession = { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Zone 2' } };
-        lsSet(`current:recovery`, recSession);
-        setSession(recSession);
+      // ====== Active Recovery keuze (exact 3 opties) ======
+      function openRecoverySession(kind){
+        let rec=null;
+        if(kind==='resilient'){ rec = chooseResilient(); }
+        else if(kind==='gfm'){ rec = chooseGFMFlow(); }
+        else { rec = chooseZone2Only(); }
+        lsSet(`current:recovery`, rec);
+        setSession(rec);
         setElapsed(0); setRunning(false);
       }
 
@@ -872,25 +915,31 @@
         setRunning(false);
         const metaMod = session.meta?.modality;
 
+        // Warm-up (niet loggen)
         if(metaMod==='warmup'){
           try{localStorage.removeItem(currentKey('warmup'));}catch(e){};
           setSession(null);
           alert("Warm-up closed.");
           return;
         }
+
+        // Speciale sessies (HIIT/Recovery)
         if(['hiit','recovery'].includes(metaMod)){
           try{localStorage.removeItem(currentKey(metaMod));}catch(e){};
           const histKeySpecial = historyKey(metaMod);
           const arr = lsGet(histKeySpecial,[]);
           arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:session.main, meta:session.meta });
           lsSet(histKeySpecial, arr);
+          if(metaMod==='recovery'){ incRecoveryCount(); }
           setSession(null);
           alert(`${metaMod==='hiit'?'Inferno':'Active Recovery'} saved to history.`);
           return;
         }
 
+        // Strength: opslaan
         saveToHistory(session, metaMod || modality);
 
+        // Phase-end gedrag: KB/BB -> test/review; Bodyweight -> door naar volgende fase
         if (session?.meta?.phase_end && (modality==='kettlebell' || modality==='barbell')){
           if(modality==='kettlebell'){
             const t = buildKbTestSession();
@@ -908,8 +957,26 @@
             setTestPassed(false);
             return;
           }
+        } else if (session?.meta?.phase_end && modality==='bodyweight'){
+          const eng = SFB;
+          if(eng.current_phase < 3){ eng.current_phase += 1; } else { eng.current_phase = 3; }
+          eng.session_count = 0;
+          eng.exercise_usage_count = {};
+          eng.last_session_exercises = [];
+          eng.last_session_volumes = {};
+          eng.all_sessions = [];
+          eng.persist();
+
+          try{ localStorage.removeItem(`current:bodyweight`); }catch(e){}
+          const next = eng.generate_single_session();
+          next.meta.modality = 'bodyweight';
+          lsSet(`current:bodyweight`, next);
+          setSession(next);
+          setElapsed(0);
+          return;
         }
 
+        // Default: volgende sessie zelfde modality
         const eng=engineFor(modality);
         const s=eng.generate_single_session();
         s.meta.modality=modality;
@@ -949,6 +1016,8 @@
             onRestart={restartSelected}
             recoveryMode={recoveryMode}
             setRecoveryMode={setRecoveryMode}
+            recoveryCount={recoveryCount}
+            recoveryMax={REC_MAX}
           />
 
           {recoveryMode==="inline" && (
@@ -974,11 +1043,11 @@
               <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
               {recovery.total>=7 && recovery.total<=10 && (
                 <>
-                  <p className="text-xs text-gray-400 mt-3">Active Recovery — Choose:</p>
+                  <p className="text-xs text-gray-400 mt-3">Active Recovery — Kies exact één optie:</p>
                   <div className="flex flex-col gap-2 mt-2">
-                    <button className="btn bg-gray-700 w-full" onClick={chooseMobility}>Mobility</button>
-                    <button className="btn bg-gray-700 w-full" onClick={chooseFlowPlusZone2}>Flow + Zone 2</button>
-                    <button className="btn bg-gray-700 w-full" onClick={chooseZone2Only}>Zone 2</button>
+                    <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('resilient')}>Resilient</button>
+                    <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('gfm')}>GFM Flow</button>
+                    <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('zone2')}>Zone #2</button>
                   </div>
                 </>
               )}
@@ -1008,6 +1077,18 @@
                     <p className="text-xs italic">{opt.note}</p>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Snel nog een recovery-sessie (max 2 per dag) */}
+          {(route==='recovery' && recoveryCount < REC_MAX) && (
+            <div className="p-4 card mb-4">
+              <p className="font-semibold mb-2">Nog een herstelblok vandaag?</p>
+              <div className="flex flex-col md:flex-row gap-2">
+                <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('resilient')}>Resilient</button>
+                <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('gfm')}>GFM Flow</button>
+                <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('zone2')}>Zone #2</button>
               </div>
             </div>
           )}
@@ -1113,7 +1194,7 @@
           </div>
 
           <footer className="text-xs text-center mt-6 text-gray-400 pb-[calc(env(safe-area-inset-bottom)+8px)]">
-            Kettlebell • Barbell • Bodyweight • Inferno • Warm-up • Recovery • Breathing
+            Kettlebell • Barbell • Bodyweight • Inferno • Warm-up • Recovery (Resilient / GFM Flow / Zone #2) • Breathing
           </footer>
         </div>
       );
@@ -1156,4 +1237,3 @@
   </script>
 </body>
 </html>
-
