@@ -51,6 +51,19 @@
       });
       return best;
     }
+    /* === Inferno scheduling helpers === */
+    function addDays(dateISO, days){
+      const d = dateISO ? new Date(dateISO) : new Date();
+      d.setHours(0,0,0,0);
+      d.setDate(d.getDate()+days);
+      return d.toISOString();
+    }
+    function isSameOrBefore(aISO, bISO){
+      return new Date(aISO).getTime() <= new Date(bISO).getTime();
+    }
+    function todayISO(){
+      const d=new Date(); d.setHours(0,0,0,0); return d.toISOString();
+    }
 
     /* ================== Engines ================== */
     function createEngine({ key, patterns, cycleVolumes, sessionsPerCycle=18 }) {
@@ -495,7 +508,7 @@
       );
     }
 
-    /* ======= Tests KB/BB ======= */
+    /* ======= Tests KB/BB/BW ======= */
     const BB_REVIEW_NOTE = "If you successfully completed all prescribed reps and sets for all barbell lifts in this phase, you can increase Upper body +2.5–5% and Lower body +5–10% and start a new cycle with the heavier weight. Or continue the same cycle with the current weights and higher volume.";
     const BB_REVIEW_ITEMS = [
       { id:"legs", label:"Lower Body — All prescribed sets & reps completed across the phase with solid form (no missed reps / no grinders above RPE 9.5)." },
@@ -510,6 +523,15 @@
       { k: "Double Front Squat", note: "5 reps" },
       { k: "Snatch",        note: "5 reps each arm" }
     ];
+    /* ==== Bodyweight review (SFB) ==== */
+    const BW_REVIEW_NOTE =
+      "If you successfully completed all prescribed reps and sets for all bodyweight movements in this phase, you can progress to the next cycle with harder variations (or higher volume). Or repeat the same cycle if you struggled.";
+    const BW_REVIEW_ITEMS = [
+      { id:"legs", label:"Legs — All prescribed sets & reps completed with strict form (no compensations, no breakdown)." },
+      { id:"push", label:"Upper Body Push — All prescribed sets & reps completed with solid form (no sagging / no missed reps)." },
+      { id:"pull", label:"Upper Body Pull — All prescribed sets & reps completed with full ROM and control (no kipping / no partial reps)." }
+    ];
+
     function buildKbTestSession(){
       const lines = [
         "Kettlebell Test Day — Use one bell heavier than your normal bell for Test Day.",
@@ -526,27 +548,35 @@
       ];
       return { main: lines, meta: { modality: "barbell_test", date: new Date().toISOString() } };
     }
+    function buildBwReviewSession(){
+      const lines = [
+        "Bodyweight Phase Review (Not a max test)",
+        "",
+        "* " + BW_REVIEW_NOTE
+      ];
+      return { main: lines, meta: { modality: "bodyweight_test", date: new Date().toISOString() } };
+    }
 
     function TestView({ modality, onSubmit, testChecks, setTestChecks, testPassed, onStartNewCycle, onContinueCycle }) {
       const isKB = modality === 'kettlebell';
-      const kbItems = KB_TEST_ITEMS;
-      const bbItems = BB_REVIEW_ITEMS;
+      const isBB = modality === 'barbell';
+      const isBW = modality === 'bodyweight';
+      const items = isKB ? KB_TEST_ITEMS : isBB ? BB_REVIEW_ITEMS : BW_REVIEW_ITEMS;
+
       return (
         <div>
           <h2 className="font-semibold mb-2 text-lg">
-            {isKB ? "Kettlebell Test Day" : "Barbell Phase Review"}
+            {isKB ? "Kettlebell Test Day" : isBB ? "Barbell Phase Review" : "Bodyweight Phase Review"}
           </h2>
           {isKB ? (
-            <p className="text-sm mb-2">
-              <strong>Important:</strong> Use one bell heavier than your normal bell for Test Day.
-            </p>
+            <p className="text-sm mb-2"><strong>Important:</strong> Use one bell heavier than your normal bell for Test Day.</p>
           ) : (
             <div className="text-sm mb-2">
-              <p>{BB_REVIEW_NOTE}</p>
+              <p>{isBB ? BB_REVIEW_NOTE : BW_REVIEW_NOTE}</p>
             </div>
           )}
           <div className="space-y-2">
-            {(isKB ? kbItems : bbItems).map((it, idx) => {
+            {items.map((it, idx) => {
               const key = isKB ? it.k : it.id;
               const label = isKB ? `${it.k}${it.note?` — ${it.note}`:''}` : it.label;
               return (
@@ -563,9 +593,7 @@
             })}
           </div>
           {!testPassed ? (
-            <button onClick={onSubmit} className="btn bg-blue-600 w-full mt-3">
-              Submit
-            </button>
+            <button onClick={onSubmit} className="btn bg-blue-600 w-full mt-3">Submit</button>
           ) : (
             <div className="flex flex-col gap-2 mt-3">
               <button className="btn bg-green-600 w-full" onClick={onStartNewCycle}>Start New Cycle</button>
@@ -644,7 +672,7 @@
     /* ===== ACTIVE RECOVERY (3 opties + Resilient lijst) ===== */
     function chooseResilient(){
       const lines = [
-        "Resilient",
+        "Resilient — quality over quantity; pain‑free range. Guide: 2–3 sets • 3–5 reps or 10–30s holds.",
         "",
         "Hack Squat",
         "* 2×5–8",
@@ -689,36 +717,55 @@
       return recSession;
     }
 
-    // Kleine GFM flow "generator" (shuffle uit een pool)
-    const GFM_POOL = [
-      "Rockback → Head Nod",
-      "Seated S Switch",
-      "Half-kneeling Halo",
-      "Tall-kneeling Bow & Arrow",
-      "Beast to Crab",
-      "Side Sit → Shin Box Switch",
-      "Seated Egyptian",
-      "Crawl → Crab",
-      "Pike → Tabletop → Crab",
-      "Prone Swimmer",
-      "Scorpion Reach",
-      "Lateral Ape",
-      "Crab Reach",
-      "Bear Crawl (forward/back)",
+    /* ======= FULL GFM FLOW GENERATOR (General) ======= */
+    const MOBILITY_DB_GENERAL = [
+      // GFM Hips
+      "Figure 4 Position → Figure 4 Lunge → Half Heel Sit",
+      "Z-position Switches → Z-position Side Roll",
+      "Prone to Get-Up Bridge (Hip Opener Sequence)",
+
+      // GFM Shoulders
+      "Egyptian Arms (Seated → Pike → Prone)",
+      "S-Movement (Seated → Pike → Prone)",
+      "Figure 8 in 6pt → Transition to 4pt",
+      "Crawl to Crab → Pike to Tabletop",
+
+      // GFM Ankles
+      "Ankle Series (Up/Down, In/Out, Rotations)",
+      "Figure 8 with Toes and Ankles",
+      "Snail Crawl → Frog → Crab Flow",
+
+      // GFM Spine & Neck
+      "Supine Neck Rolls + Segmental Spine Rolls",
+      "Hand-on-Knee Rolls + Forward/Backward Rolling",
+
+      // GFM Wrists
+      "Finger Waves → Hand Circles → Tea Pot (Wrist Flow)",
+
+      // Flow Transitions / Extensions
+      "4pt Crawl → Push-Up → Pike → Squat → Crab",
+      "Shoulder Mobility Drill → Prone S Transition → 4pt Crawl",
+      "Half Heel Sit → Roll to Supine → Segmental Roll to Prone",
+      "6pt X-Lift → Prone Rotation → Crab Reach with Control",
+
+      // Safe Animal Flow inspired moves
+      "Static Beast Hold → Dynamic Beast Crawl",
+      "Crab Reach (slow, controlled)",
+      "Underswitch from Beast to Crab",
+      "Scorpion Prep from Prone (hip rotation, no kick)",
+      "Side Travelling Ape (low squat lateral walk)",
+      "Loaded Beast → Wave Unload (slow)"
     ];
     function chooseGFMFlow(){
-      const pool = GFM_POOL.slice();
-      for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
-      const pick = pool.slice(0,10); // ~10 items ~20 min
-      const lines = ["GFM Flow (~20 min):", ...pick.map(s=>"* "+s)];
-      return { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'GFM Flow' } };
+      const src = MOBILITY_DB_GENERAL.slice();
+      for (let i = src.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [src[i], src[j]] = [src[j], src[i]]; }
+      const pickCount = 7; // ~15–20 min
+      const steps = src.slice(0, pickCount);
+      const lines = ["GFM Flow (~15–20 min):", "", ...steps.map((s, i) => `${i + 1}) ${s}`)];
+      return { main: lines, meta: { modality: "recovery", date: new Date().toISOString(), choice: "GFM Flow" } };
     }
-
     function chooseZone2Only(){
-      const lines = [
-        "Zone #2",
-        "* Do 30 minutes of continuous Zone 2 cardio (walking, cycling, rowing, etc.)."
-      ];
+      const lines = ["Zone #2", "* Do 30 minutes of continuous Zone 2 cardio (walking, cycling, rowing, etc.)."];
       return { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Zone #2' } };
     }
 
@@ -753,6 +800,11 @@
       const [lastCompletedModality, setLastCompletedModality] = useState(lsGet("lastCompletedModality", null));
       const [suggestion, setSuggestion] = useState(null);
 
+      // Inferno auto schedule
+      const [infernoAuto, setInfernoAuto] = useState(lsGet("inferno:auto","off")); // "off" | "14" | "21"
+      const [infernoNextDue, setInfernoNextDue] = useState(lsGet("inferno:next_due", null));
+      const [infernoDueNow, setInfernoDueNow] = useState(false);
+
       function engineFor(m){ return m==='kettlebell'?SFG : m==='barbell'?SFL : SFB; }
       function currentKey(m){ return `current:${m}`; }
       function historyKey(m){ return `history:${m}`; }
@@ -769,6 +821,17 @@
         return cur;
       }
       function recomputeSuggestion(baseMod = null){
+        // If Inferno due and auto enabled, you may prefer to hint HIIT (optional)
+        const auto = lsGet("inferno:auto","off");
+        const nextDue = lsGet("inferno:next_due", null);
+        if(auto!=="off" && nextDue && isSameOrBefore(nextDue, todayISO())){
+          setSuggestion({
+            modality: 'hiit',
+            session: { meta:{ modality:'hiit', su:400, date:new Date().toISOString() }, main: ["Inferno session (choose target 300/400/500)"] }
+          });
+          return;
+        }
+
         const last = baseMod || lastCompletedModality || getLatestMainModalityFromHistory() || lsGet("last_modality", null);
         const pool = ["kettlebell","barbell","bodyweight"];
         const candidates = last ? pool.filter(m=>m!==last) : pool;
@@ -801,6 +864,23 @@
         recomputeSuggestion();
       },[lastCompletedModality]);
 
+      // Inferno due init/update
+      useEffect(()=>{
+        const auto = lsGet("inferno:auto","off");
+        let next = lsGet("inferno:next_due", null);
+        if(auto !== "off"){
+          if(!next){
+            next = addDays(todayISO(), parseInt(auto,10));
+            lsSet("inferno:next_due", next);
+          }
+          setInfernoNextDue(next);
+          setInfernoDueNow(isSameOrBefore(next, todayISO()));
+        } else {
+          setInfernoNextDue(null);
+          setInfernoDueNow(false);
+        }
+      }, []);
+
       function toggleDark(){ document.documentElement.classList.toggle('dark'); }
 
       function lockToday(routeChosen){
@@ -823,7 +903,7 @@
       }
 
       function restartSelected(){
-        if(session && session.meta && ['hiit','recovery','breathing','warmup','kettlebell_test','barbell_test'].includes(session.meta.modality)){
+        if(session && session.meta && ['hiit','recovery','breathing','warmup','kettlebell_test','barbell_test','bodyweight_test'].includes(session.meta.modality)){
           try{localStorage.removeItem(currentKey(session.meta.modality));}catch(e){}
         }
         const eng=engineFor(modality);
@@ -906,11 +986,15 @@
       const [testPassed, setTestPassed] = useState(false);
 
       function submitTestResult(){
-        const isKB = (session?.meta?.modality === 'kettlebell_test');
-        const total = isKB ? KB_TEST_ITEMS.length : BB_REVIEW_ITEMS.length;
+        const mod = session?.meta?.modality; // 'kettlebell_test' | 'barbell_test' | 'bodyweight_test'
+        const isKB = (mod === 'kettlebell_test');
+        const isBB = (mod === 'barbell_test');
+        const isBW = (mod === 'bodyweight_test');
+
+        const total = isKB ? KB_TEST_ITEMS.length : isBB ? BB_REVIEW_ITEMS.length : BW_REVIEW_ITEMS.length;
         const passed = Object.values(testChecks).filter(Boolean).length;
 
-        const histKey = `history:${isKB ? 'kettlebell_test' : 'barbell_test'}`;
+        const histKey = `history:${isKB ? 'kettlebell_test' : isBB ? 'barbell_test' : 'bodyweight_test'}`;
         const arr = lsGet(histKey, []);
         arr.push({ saved_at: new Date().toISOString(), meta: session.meta, main: session.main, passed, total });
         lsSet(histKey, arr);
@@ -918,7 +1002,7 @@
         if(passed === total){
           setTestPassed(true);
         } else {
-          const eng = isKB ? SFG : SFL;
+          const eng = isKB ? SFG : isBB ? SFL : SFB;
           if(eng.current_phase < 3){
             eng.current_phase += 1;
           } else {
@@ -931,9 +1015,9 @@
           eng.all_sessions = [];
           eng.persist();
 
-          try{ localStorage.removeItem(`current:${isKB?'kettlebell_test':'barbell_test'}`); }catch(e){}
+          try{ localStorage.removeItem(`current:${isKB?'kettlebell': isBB?'barbell':'bodyweight'}_test`); }catch(e){}
           const next = eng.generate_single_session();
-          next.meta.modality = isKB ? 'kettlebell' : 'barbell';
+          next.meta.modality = isKB ? 'kettlebell' : isBB ? 'barbell' : 'bodyweight';
           lsSet(`current:${next.meta.modality}`, next);
           setSession(next);
           setTestChecks({});
@@ -942,12 +1026,13 @@
         }
       }
       function startNewCycle(){
-        const isKB = (session?.meta?.modality === 'kettlebell_test');
-        const eng = isKB ? SFG : SFL;
+        const mod = session?.meta?.modality;
+        const eng = mod==='kettlebell_test' ? SFG : mod==='barbell_test' ? SFL : SFB; // bodyweight_test → SFB
         eng.startNewCycle?.();
-        try{ localStorage.removeItem(`current:${isKB?'kettlebell_test':'barbell_test'}`); }catch(e){}
+
+        try{ localStorage.removeItem(`current:${mod}`); }catch(e){}
         const next = eng.generate_single_session();
-        next.meta.modality = isKB ? 'kettlebell' : 'barbell';
+        next.meta.modality = (mod==='kettlebell_test' ? 'kettlebell' : mod==='barbell_test' ? 'barbell' : 'bodyweight');
         lsSet(`current:${next.meta.modality}`, next);
         setSession(next);
         setTestChecks({});
@@ -955,8 +1040,9 @@
         recomputeSuggestion(next.meta.modality);
       }
       function continueThisCycle(){
-        const isKB = (session?.meta?.modality === 'kettlebell_test');
-        const eng = isKB ? SFG : SFL;
+        const mod = session?.meta?.modality;
+        const eng = mod==='kettlebell_test' ? SFG : mod==='barbell_test' ? SFL : SFB; // bodyweight_test → SFB
+
         if(eng.current_phase < 3){
           eng.current_phase += 1;
         } else {
@@ -969,9 +1055,9 @@
         eng.all_sessions = [];
         eng.persist();
 
-        try{ localStorage.removeItem(`current:${isKB?'kettlebell_test':'barbell_test'}`); }catch(e){}
+        try{ localStorage.removeItem(`current:${mod}`); }catch(e){}
         const next = eng.generate_single_session();
-        next.meta.modality = isKB ? 'kettlebell' : 'barbell';
+        next.meta.modality = (mod==='kettlebell_test' ? 'kettlebell' : mod==='barbell_test' ? 'barbell' : 'bodyweight');
         lsSet(`current:${next.meta.modality}`, next);
         setSession(next);
         setTestChecks({});
@@ -992,60 +1078,73 @@
           return;
         }
 
-        // Speciale sessies (HIIT/Recovery)
-        if(['hiit','recovery'].includes(metaMod)){
-          try{localStorage.removeItem(currentKey(metaMod));}catch(e){};
-          const histKeySpecial = historyKey(metaMod);
+        // HIIT: log + autoschedule (indien aan)
+        if(metaMod==='hiit'){
+          try{localStorage.removeItem(currentKey('hiit'));}catch(e){};
+          const histKeySpecial = historyKey('hiit');
           const arr = lsGet(histKeySpecial,[]);
           arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:session.main, meta:session.meta });
           lsSet(histKeySpecial, arr);
-          if(metaMod==='recovery'){ incRecoveryCount(); }
+
+          // plan next Inferno only if auto is enabled
+          const auto = lsGet("inferno:auto","off");
+          if(auto !== "off"){
+            const interval = parseInt(auto,10); // 14 or 21
+            const nextDue = addDays(todayISO(), interval);
+            lsSet("inferno:next_due", nextDue);
+            setInfernoNextDue(nextDue);
+            setInfernoDueNow(false);
+          }
+
           setSession(null);
-          alert(`${metaMod==='hiit'?'Inferno':'Active Recovery'} saved to history.`);
+          alert('Inferno saved.');
+          recomputeSuggestion();
           return;
         }
 
-        // Strength: opslaan
+        // Recovery: log + count
+        if(metaMod==='recovery'){
+          try{localStorage.removeItem(currentKey('recovery'));}catch(e){};
+          const histKeySpecial = historyKey('recovery');
+          const arr = lsGet(histKeySpecial,[]);
+          arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:session.main, meta:session.meta });
+          lsSet(histKeySpecial, arr);
+          incRecoveryCount();
+          setSession(null);
+          alert('Active Recovery saved to history.');
+          return;
+        }
+
+        // Strength: log
         saveToHistory(session, metaMod || modality);
 
-        // Phase-end gedrag: KB/BB -> test/review; Bodyweight -> volgende fase
-        if (session?.meta?.phase_end && (modality==='kettlebell' || modality==='barbell')){
-          if(modality==='kettlebell'){
-            const t = buildKbTestSession();
-            lsSet('current:kettlebell_test', t);
-            setSession(t);
-            setTestChecks({});
-            setTestPassed(false);
-            setLastCompletedModality('kettlebell'); lsSet("lastCompletedModality",'kettlebell');
-            recomputeSuggestion('kettlebell');
-            return;
-          }
-          if(modality==='barbell'){
-            const t = buildBbReviewSession();
-            lsSet('current:barbell_test', t);
-            setSession(t);
-            setTestChecks({});
-            setTestPassed(false);
-            setLastCompletedModality('barbell'); lsSet("lastCompletedModality",'barbell');
-            recomputeSuggestion('barbell');
-            return;
-          }
-        } else if (session?.meta?.phase_end && modality==='bodyweight'){
-          const eng = SFB;
-          if(eng.current_phase < 3){ eng.current_phase += 1; } else { eng.current_phase = 3; }
-          eng.session_count = 0;
-          eng.exercise_usage_count = {};
-          eng.last_session_exercises = [];
-          eng.last_session_volumes = {};
-          eng.all_sessions = [];
-          eng.persist();
-
-          try{ localStorage.removeItem(`current:bodyweight`); }catch(e){}
-          const next = eng.generate_single_session();
-          next.meta.modality = 'bodyweight';
-          lsSet(`current:bodyweight`, next);
-          setSession(next);
-          setElapsed(0);
+        // Phase-end gedrag
+        if (session?.meta?.phase_end && modality==='kettlebell'){
+          const t = buildKbTestSession();
+          lsSet('current:kettlebell_test', t);
+          setSession(t);
+          setTestChecks({});
+          setTestPassed(false);
+          setLastCompletedModality('kettlebell'); lsSet("lastCompletedModality",'kettlebell');
+          recomputeSuggestion('kettlebell');
+          return;
+        }
+        if (session?.meta?.phase_end && modality==='barbell'){
+          const t = buildBbReviewSession();
+          lsSet('current:barbell_test', t);
+          setSession(t);
+          setTestChecks({});
+          setTestPassed(false);
+          setLastCompletedModality('barbell'); lsSet("lastCompletedModality",'barbell');
+          recomputeSuggestion('barbell');
+          return;
+        }
+        if (session?.meta?.phase_end && modality==='bodyweight'){
+          const t = buildBwReviewSession();
+          lsSet('current:bodyweight_test', t);
+          setSession(t);
+          setTestChecks({});
+          setTestPassed(false);
           setLastCompletedModality('bodyweight'); lsSet("lastCompletedModality",'bodyweight');
           recomputeSuggestion('bodyweight');
           return;
@@ -1073,22 +1172,76 @@
       // Pages
       const PageTrain = (
         <>
-          {/* Suggested Next (random uit 2 andere modalities) */}
+          {/* Inferno due card */}
+          {infernoAuto!=="off" && infernoDueNow && (
+            <CalmCard title="Inferno (HIIT) due" subtitle={`Scheduled date: ${new Date(infernoNextDue).toLocaleDateString()}`}>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                Longevity check: it’s time for a metabolic hit. Pick a target:
+              </p>
+              <div className="flex flex-col md:flex-row gap-2">
+                {[300,400,500].map(val=>(
+                  <button key={val} className="btn bg-indigo-600 w-full"
+                    onClick={()=>{
+                      pinInferno(val);
+                      // bij complete wordt volgende gepland (als auto aan staat)
+                    }}
+                  >
+                    Start Inferno {val}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button className="btn bg-gray-700 w-full"
+                  onClick={()=>{
+                    const next = addDays(todayISO(), 3);
+                    lsSet("inferno:next_due", next);
+                    setInfernoNextDue(next);
+                    setInfernoDueNow(false);
+                  }}
+                >
+                  Snooze 3 days
+                </button>
+                <button className="btn bg-gray-700 w-full"
+                  onClick={()=>{
+                    const interval = parseInt(lsGet("inferno:auto","14"),10) || 14;
+                    const next = addDays(todayISO(), interval);
+                    lsSet("inferno:next_due", next);
+                    setInfernoNextDue(next);
+                    setInfernoDueNow(false);
+                  }}
+                >
+                  Skip to next cycle
+                </button>
+              </div>
+            </CalmCard>
+          )}
+
+          {/* Suggested Next (random uit 2 andere modalities of HIIT hint) */}
           {suggestion && suggestion.session && (
             <CalmCard title="Suggested Next">
               <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                 Based on your last session, try this next:
               </p>
-              <button
-                className="btn bg-blue-600 w-full"
-                onClick={()=>{
-                  setModality(suggestion.modality);
-                  const pinned = ensurePinnedFor(suggestion.modality);
-                  setSession(pinned);
-                }}
-              >
-                {suggestion.modality.charAt(0).toUpperCase()+suggestion.modality.slice(1)} — {suggestion.session.meta.cycle}.{suggestion.session.meta.phase}.{suggestion.session.meta.session}
-              </button>
+              {suggestion.modality==='hiit' ? (
+                <div className="flex flex-col md:flex-row gap-2">
+                  {[300,400,500].map(val=>(
+                    <button key={val} className="btn bg-indigo-600 w-full" onClick={()=>pinInferno(val)}>
+                      Start Inferno {val}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <button
+                  className="btn bg-blue-600 w-full"
+                  onClick={()=>{
+                    setModality(suggestion.modality);
+                    const pinned = ensurePinnedFor(suggestion.modality);
+                    setSession(pinned);
+                  }}
+                >
+                  {suggestion.modality.charAt(0).toUpperCase()+suggestion.modality.slice(1)} — {suggestion.session.meta.cycle}.{suggestion.session.meta.phase}.{suggestion.session.meta.session}
+                </button>
+              )}
             </CalmCard>
           )}
 
@@ -1115,10 +1268,14 @@
 
           {session && (
             <CalmCard title="Session" subtitle="Pinned until Complete">
-              {(session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test')
+              {(session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test' || session.meta?.modality==='bodyweight_test')
                 ? (
                   <TestView
-                    modality={session.meta.modality==='kettlebell_test' ? 'kettlebell' : 'barbell'}
+                    modality={
+                      session.meta.modality==='kettlebell_test' ? 'kettlebell'
+                      : session.meta.modality==='barbell_test' ? 'barbell'
+                      : 'bodyweight'
+                    }
                     testChecks={testChecks}
                     setTestChecks={setTestChecks}
                     testPassed={testPassed}
@@ -1151,7 +1308,7 @@
             </CalmCard>
           )}
 
-          {session && !['warmup','breathing','recovery','kettlebell_test','barbell_test','hiit'].includes(session?.meta?.modality) && (
+          {session && !['warmup','breathing','recovery','kettlebell_test','barbell_test','bodyweight_test','hiit'].includes(session?.meta?.modality) && (
             <CalmCard title="Performance">
               <PerformanceForm session={session} onChange={updatePerformance}/>
             </CalmCard>
@@ -1165,7 +1322,6 @@
 
       const PageRecovery = (
         <>
-          {/* Gate mode: toon Daily Recovery Check vóór keuzes (inline = optioneel in settings) */}
           {recoveryMode==="inline" && (
             <Accordion title="Recovery Check" defaultOpen>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-1">
@@ -1273,6 +1429,39 @@
                 {recoveryMode === "gate" ? "Gate" : "Inline"}
               </button>
             </div>
+
+            {/* Inferno scheduling settings */}
+            <div>
+              <p className="text-sm font-medium mb-2">Inferno Scheduling</p>
+              <select
+                value={infernoAuto}
+                onChange={e=>{
+                  const val = e.target.value;
+                  lsSet("inferno:auto", val);
+                  setInfernoAuto(val);
+                  // when turning on, schedule next from today; when off, clear due
+                  if(val !== "off"){
+                    const next = addDays(todayISO(), parseInt(val,10));
+                    lsSet("inferno:next_due", next);
+                    setInfernoNextDue(next);
+                    setInfernoDueNow(isSameOrBefore(next, todayISO()));
+                  } else {
+                    lsSet("inferno:next_due", null);
+                    setInfernoNextDue(null);
+                    setInfernoDueNow(false);
+                  }
+                }}
+                className="border rounded p-2 w-full bg-white dark:bg-gray-700"
+              >
+                <option value="off">Off (manual only)</option>
+                <option value="14">Every 14 days</option>
+                <option value="21">Every 21 days</option>
+              </select>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Auto-schedule Inferno after your last completed session. A due card will appear on the Train tab.
+              </p>
+            </div>
+
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">Default Modality</p>
               <div className="mt-1">
@@ -1438,4 +1627,3 @@
   </script>
 </body>
 </html>
-
