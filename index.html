@@ -51,7 +51,6 @@
       });
       return best;
     }
-    /* === Inferno scheduling helpers === */
     function addDays(dateISO, days){
       const d = dateISO ? new Date(dateISO) : new Date();
       d.setHours(0,0,0,0);
@@ -61,9 +60,7 @@
     function isSameOrBefore(aISO, bISO){
       return new Date(aISO).getTime() <= new Date(bISO).getTime();
     }
-    function todayISO(){
-      const d=new Date(); d.setHours(0,0,0,0); return d.toISOString();
-    }
+    function todayISO(){ const d=new Date(); d.setHours(0,0,0,0); return d.toISOString(); }
 
     /* ================== Engines ================== */
     function createEngine({ key, patterns, cycleVolumes, sessionsPerCycle=18 }) {
@@ -318,7 +315,7 @@
             <div className="flex items-center justify-between h-12">
               <div className="flex items-center gap-2">
                 <button
-                  className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 md:hidden"
+                  className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg:white/5 md:hidden"
                   onClick={()=>document.getElementById("drawer").showModal()}
                   aria-label="Open menu"
                 >
@@ -769,6 +766,72 @@
       return { main: lines, meta: { modality:'recovery', date:new Date().toISOString(), choice:'Zone #2' } };
     }
 
+    /* ===== Optional Finishers ===== */
+    const FINISHERS_DB = {
+      biceps: ["Zottman Curl", "Hammer Curl", "Concentration Curl"],
+      triceps: ["KB Overhead Extension", "Diamond Push-up", "Bench Dips"],
+      abs: ["Ab-wheel Rollout", "Weighted Sit-up / KB Crunch", "Side Bend"],
+      clubmace: ["Mace 360", "Clubbell Mills", "Clubbell Swipe", "Mace Uppercut / Press-out"]
+    };
+    function buildFinishersLines(){
+      const picks = Object.entries(FINISHERS_DB).map(([cat,arr])=>{
+        const pick = arr[Math.floor(Math.random()*arr.length)];
+        const label = cat==='clubmace' ? 'Club/Mace' : cat[0].toUpperCase()+cat.slice(1);
+        return `* ${label}: ${pick} — 2×12`;
+      });
+      return ["", "Finishers (optional):", "", ...picks];
+    }
+
+    /* ======= Score Selectors (0–5 buttons with text) ======= */
+    const SCORE_SCALES = {
+      sleep: [
+        "0 – Barely slept, not recovered",
+        "1 – Very poor sleep, broken",
+        "2 – Restless, too short, not refreshed",
+        "3 – Okay, enough to get by",
+        "4 – Good, rested",
+        "5 – Excellent, fully recovered"
+      ],
+      energy: [
+        "0 – No energy at all, exhausted",
+        "1 – Very low, hard to move",
+        "2 – Low, sluggish",
+        "3 – Okay, manageable",
+        "4 – Good, energetic",
+        "5 – Excellent, buzzing with energy"
+      ],
+      body: [
+        "0 – Severe pain/injury, not trainable",
+        "1 – Major stiffness/pain, very limited",
+        "2 – Noticeable stiffness/pain, but can move",
+        "3 – Slight stiffness/fatigue, usable",
+        "4 – Good, minimal limitations",
+        "5 – Excellent, loose and strong"
+      ]
+    };
+    function ScoreSelector({ label, keyName, value, onChange }){
+      const scale = SCORE_SCALES[keyName];
+      return (
+        <div className="mb-3">
+          <div className="font-medium mb-1">{label}</div>
+          <div className="flex flex-wrap gap-2">
+            {scale.map((desc, idx)=>(
+              <button
+                key={idx}
+                className={`px-3 py-1.5 rounded-lg text-sm border ${
+                  value===idx ? "bg-blue-600 text-white" : "bg-gray-200 dark:bg-gray-800"
+                }`}
+                onClick={()=>onChange(idx)}
+              >
+                {idx}
+              </button>
+            ))}
+          </div>
+          {value!=null && <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{scale[value]}</div>}
+        </div>
+      );
+    }
+
     /* =================== App =================== */
     function App(){
       const [modality,setModality]=useState(lsGet("modality","kettlebell"));
@@ -777,7 +840,17 @@
       const [session,setSession]=useState(null);
       const [elapsed,setElapsed]=useState(0);
       const [running,setRunning]=useState(false);
-      const [recovery,setRecovery]=useState({sleep:0,energy:0,body:0,total:0,gate:"FULL REST"});
+
+      // Recovery scores (0–5)
+      const [sleepScore,setSleepScore]=useState(lsGet("rec:sleep",null));
+      const [energyScore,setEnergyScore]=useState(lsGet("rec:energy",null));
+      const [bodyScore,setBodyScore]=useState(lsGet("rec:body",null));
+      useEffect(()=>lsSet("rec:sleep",sleepScore),[sleepScore]);
+      useEffect(()=>lsSet("rec:energy",energyScore),[energyScore]);
+      useEffect(()=>lsSet("rec:body",bodyScore),[bodyScore]);
+
+      const totalRecovery = (sleepScore??0)+(energyScore??0)+(bodyScore??0);
+      const gateDecision = totalRecovery>=11 ? "train" : totalRecovery>=7 ? "recovery" : "fullrest";
 
       const [route, setRoute] = useState("gate");
       const [recoveryMode, setRecoveryMode] = useState(lsGet("recovery:mode","gate"));
@@ -796,7 +869,27 @@
         const c=(lsGet(k,0)||0)+1; lsSet(k,c); setRecoveryCount(c);
       }
 
-      // Suggestie: random uit 2 andere modalities
+      // Optional finishers toggle
+      const [finishersEnabled, setFinishersEnabled] = useState(lsGet("finishers:enabled", false));
+      useEffect(()=>lsSet("finishers:enabled", finishersEnabled),[finishersEnabled]);
+
+      // Enabled modalities
+      const DEFAULT_ENABLED = { kettlebell:true, barbell:true, bodyweight:true };
+      const [enabled, setEnabled] = useState(lsGet("modalities:enabled", DEFAULT_ENABLED));
+      useEffect(()=>{ lsSet("modalities:enabled", enabled); }, [enabled]);
+      const enabledList = useMemo(()=>Object.keys(enabled).filter(k=>enabled[k]), [enabled]);
+      useEffect(()=>{
+        if (!enabled[modality]) {
+          const fallback = enabledList[0] || "kettlebell";
+          if (fallback !== modality) {
+            setModality(fallback);
+            const cur = ensurePinnedFor(fallback);
+            setSession(cur);
+          }
+        }
+      }, [enabled, modality]);
+
+      // Suggestie
       const [lastCompletedModality, setLastCompletedModality] = useState(lsGet("lastCompletedModality", null));
       const [suggestion, setSuggestion] = useState(null);
 
@@ -809,19 +902,30 @@
       function currentKey(m){ return `current:${m}`; }
       function historyKey(m){ return `history:${m}`; }
 
+      function maybeAppendFinishers(sessionObj){
+        const m = sessionObj?.meta?.modality;
+        if(!finishersEnabled) return sessionObj;
+        if(['kettlebell','barbell','bodyweight'].includes(m || '')){
+          const lines = buildFinishersLines();
+          const out = { ...sessionObj, main: [...(sessionObj.main||[]), ...lines] };
+          return out;
+        }
+        return sessionObj;
+      }
+
       function ensurePinnedFor(mod){
         let cur = lsGet(currentKey(mod), null);
         if(!cur){
           const eng = engineFor(mod);
-          const s = eng.generate_single_session();
+          let s = eng.generate_single_session();
           s.meta.modality = mod;
+          s = maybeAppendFinishers(s);
           lsSet(currentKey(mod), s);
           cur = s;
         }
         return cur;
       }
       function recomputeSuggestion(baseMod = null){
-        // If Inferno due and auto enabled, you may prefer to hint HIIT (optional)
         const auto = lsGet("inferno:auto","off");
         const nextDue = lsGet("inferno:next_due", null);
         if(auto!=="off" && nextDue && isSameOrBefore(nextDue, todayISO())){
@@ -831,9 +935,8 @@
           });
           return;
         }
-
         const last = baseMod || lastCompletedModality || getLatestMainModalityFromHistory() || lsGet("last_modality", null);
-        const pool = ["kettlebell","barbell","bodyweight"];
+        const pool = enabledList;
         const candidates = last ? pool.filter(m=>m!==last) : pool;
         if(candidates.length===0){ setSuggestion(null); return; }
         const pick = candidates[Math.floor(Math.random()*candidates.length)];
@@ -842,14 +945,12 @@
       }
 
       useEffect(()=>{
-        // initial pin for current modality
         const cur=lsGet(currentKey(modality),null);
         setSession(cur);
         setElapsed(0); setRunning(false);
       },[modality]);
 
       useEffect(()=>{
-        // Gate routing on mount / toggle
         if(recoveryMode==="gate"){
           const stamp = lsGet("recovery:stamp", null);
           const today = todayStr();
@@ -859,12 +960,8 @@
         }
       },[recoveryMode]);
 
-      useEffect(()=>{
-        // compute suggestion on mount & when lastCompleted changes
-        recomputeSuggestion();
-      },[lastCompletedModality]);
+      useEffect(()=>{ recomputeSuggestion(); },[lastCompletedModality]);
 
-      // Inferno due init/update
       useEffect(()=>{
         const auto = lsGet("inferno:auto","off");
         let next = lsGet("inferno:next_due", null);
@@ -887,20 +984,6 @@
         lsSet("recovery:stamp", todayStr());
         lsSet("recovery:lastRoute", routeChosen);
       }
-      function decideGate(total){
-        if(total>=11) return "train";
-        if(total>=7)  return "recovery";
-        return "fullrest";
-      }
-      function handleGateConfirm(){
-        const routeChosen = decideGate(recovery.total||0);
-        lockToday(routeChosen);
-        setRoute(routeChosen);
-      }
-      function handleGateSkip(){
-        lockToday("train");
-        setRoute("train");
-      }
 
       function restartSelected(){
         if(session && session.meta && ['hiit','recovery','breathing','warmup','kettlebell_test','barbell_test','bodyweight_test'].includes(session.meta.modality)){
@@ -916,8 +999,9 @@
       function generateCycle(){
         const eng=engineFor(modality);
         eng.hardResetToStart();
-        const s=eng.generate_single_session();
+        let s=eng.generate_single_session();
         s.meta.modality=modality;
+        s = maybeAppendFinishers(s);
         lsSet(currentKey(modality),s);
         setSession(s);
         setElapsed(0); setRunning(false);
@@ -1016,8 +1100,9 @@
           eng.persist();
 
           try{ localStorage.removeItem(`current:${isKB?'kettlebell': isBB?'barbell':'bodyweight'}_test`); }catch(e){}
-          const next = eng.generate_single_session();
+          let next = eng.generate_single_session();
           next.meta.modality = isKB ? 'kettlebell' : isBB ? 'barbell' : 'bodyweight';
+          next = maybeAppendFinishers(next);
           lsSet(`current:${next.meta.modality}`, next);
           setSession(next);
           setTestChecks({});
@@ -1031,8 +1116,9 @@
         eng.startNewCycle?.();
 
         try{ localStorage.removeItem(`current:${mod}`); }catch(e){}
-        const next = eng.generate_single_session();
+        let next = eng.generate_single_session();
         next.meta.modality = (mod==='kettlebell_test' ? 'kettlebell' : mod==='barbell_test' ? 'barbell' : 'bodyweight');
+        next = maybeAppendFinishers(next);
         lsSet(`current:${next.meta.modality}`, next);
         setSession(next);
         setTestChecks({});
@@ -1056,8 +1142,9 @@
         eng.persist();
 
         try{ localStorage.removeItem(`current:${mod}`); }catch(e){}
-        const next = eng.generate_single_session();
+        let next = eng.generate_single_session();
         next.meta.modality = (mod==='kettlebell_test' ? 'kettlebell' : mod==='barbell_test' ? 'barbell' : 'bodyweight');
+        next = maybeAppendFinishers(next);
         lsSet(`current:${next.meta.modality}`, next);
         setSession(next);
         setTestChecks({});
@@ -1070,7 +1157,7 @@
         setRunning(false);
         const metaMod = session.meta?.modality;
 
-        // Warm-up (niet loggen)
+        // Warm-up (not saved)
         if(metaMod==='warmup'){
           try{localStorage.removeItem(currentKey('warmup'));}catch(e){};
           setSession(null);
@@ -1078,7 +1165,7 @@
           return;
         }
 
-        // HIIT: log + autoschedule (indien aan)
+        // HIIT: log + autoschedule (if on)
         if(metaMod==='hiit'){
           try{localStorage.removeItem(currentKey('hiit'));}catch(e){};
           const histKeySpecial = historyKey('hiit');
@@ -1086,7 +1173,6 @@
           arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:session.main, meta:session.meta });
           lsSet(histKeySpecial, arr);
 
-          // plan next Inferno only if auto is enabled
           const auto = lsGet("inferno:auto","off");
           if(auto !== "off"){
             const interval = parseInt(auto,10); // 14 or 21
@@ -1118,7 +1204,7 @@
         // Strength: log
         saveToHistory(session, metaMod || modality);
 
-        // Phase-end gedrag
+        // Phase-end behaviour
         if (session?.meta?.phase_end && modality==='kettlebell'){
           const t = buildKbTestSession();
           lsSet('current:kettlebell_test', t);
@@ -1150,15 +1236,16 @@
           return;
         }
 
-        // Default: volgende sessie zelfde modality
+        // Default: next session same modality
         const eng=engineFor(modality);
-        const s=eng.generate_single_session();
+        let s=eng.generate_single_session();
         s.meta.modality=modality;
+        s = maybeAppendFinishers(s);
         lsSet(currentKey(modality),s);
         setSession(s);
         setElapsed(0);
 
-        // Voor suggestie: onthoud laatst voltooide modality
+        // For suggestion: remember last completed modality
         setLastCompletedModality(modality);
         lsSet("lastCompletedModality", modality);
         recomputeSuggestion(modality);
@@ -1181,10 +1268,7 @@
               <div className="flex flex-col md:flex-row gap-2">
                 {[300,400,500].map(val=>(
                   <button key={val} className="btn bg-indigo-600 w-full"
-                    onClick={()=>{
-                      pinInferno(val);
-                      // bij complete wordt volgende gepland (als auto aan staat)
-                    }}
+                    onClick={()=>{ pinInferno(val); }}
                   >
                     Start Inferno {val}
                   </button>
@@ -1216,8 +1300,8 @@
             </CalmCard>
           )}
 
-          {/* Suggested Next (random uit 2 andere modalities of HIIT hint) */}
-          {suggestion && suggestion.session && (
+          {/* Suggested Next */}
+          {suggestion && suggestion.session && enabledList.length >= (suggestion.modality==='hiit' ? 0 : 2) && (
             <CalmCard title="Suggested Next">
               <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                 Based on your last session, try this next:
@@ -1251,6 +1335,7 @@
               modality={session?.meta?.modality==='hiit'?'bodyweight':modality}
               setModality={m=>{ if(m==='hiit')return; setModality(m); const cur=ensurePinnedFor(m); setSession(cur); }}
               lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
+              enabled={enabled}
             />
           </CalmCard>
 
@@ -1324,24 +1409,10 @@
         <>
           {recoveryMode==="inline" && (
             <Accordion title="Recovery Check" defaultOpen>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-1">
-                {[
-                  ['sleep','Sleep'],['energy','Energy'],['body','Body']
-                ].map(([k,l])=>(
-                  <div key={k} className="flex items-center gap-3">
-                    <span className="w-16">{l}</span>
-                    <input type="range" min="0" max="5" value={recovery[k]} className="w-full h-4"
-                      onChange={e=>{
-                        const next={...recovery,[k]:parseInt(e.target.value,10)};
-                        next.total=next.sleep+next.energy+next.body;
-                        next.gate=next.total>=11?'TRAIN':next.total>=7?'ACTIVE RECOVERY':'FULL REST';
-                        setRecovery(next);
-                      }}/>
-                    <span className="w-6 text-center">{recovery[k]}</span>
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
+              <ScoreSelector label="Sleep Quality" keyName="sleep" value={sleepScore} onChange={setSleepScore}/>
+              <ScoreSelector label="Energy" keyName="energy" value={energyScore} onChange={setEnergyScore}/>
+              <ScoreSelector label="Body Readiness" keyName="body" value={bodyScore} onChange={setBodyScore}/>
+              <p className="text-sm mt-1">Total: {totalRecovery||0} → <strong>{gateDecision.toUpperCase()}</strong></p>
             </Accordion>
           )}
 
@@ -1420,6 +1491,7 @@
               <span className="text-sm">Calm mode (softer UI)</span>
               <input type="checkbox" checked={lsGet('ui:calm', true)} onChange={(e)=>{ lsSet('ui:calm', e.target.checked); location.reload(); }} />
             </div>
+
             <div className="flex items-center justify-between">
               <span className="text-sm">Recovery mode</span>
               <button
@@ -1430,8 +1502,49 @@
               </button>
             </div>
 
+            {/* Enabled modalities */}
+            <div className="border-t border-black/10 dark:border-white/10 pt-3">
+              <p className="text-sm font-medium mb-2">Enabled modalities</p>
+              <div className="space-y-2">
+                {["kettlebell","barbell","bodyweight"].map(id=>(
+                  <label key={id} className="flex items-center justify-between">
+                    <span className="capitalize">{id}</span>
+                    <input
+                      type="checkbox"
+                      checked={!!enabled[id]}
+                      onChange={(e)=>{
+                        const next = { ...enabled, [id]: e.target.checked };
+                        const willBeEnabled = Object.keys(next).filter(k=>next[k]);
+                        if (willBeEnabled.length===0) {
+                          alert("At least one modality must remain enabled.");
+                          return;
+                        }
+                        setEnabled(next);
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                Only enabled modalities appear in Suggested Next, Quick Switch, and rotation.
+              </p>
+            </div>
+
+            {/* Optional finishers */}
+            <div className="border-t border-black/10 dark:border-white/10 pt-3">
+              <p className="text-sm font-medium mb-2">Optional finishers</p>
+              <label className="flex items-center justify-between">
+                <span>Add Biceps / Triceps / Abs / Club-Mace after strength sessions</span>
+                <input
+                  type="checkbox"
+                  checked={finishersEnabled}
+                  onChange={(e)=>setFinishersEnabled(e.target.checked)}
+                />
+              </label>
+            </div>
+
             {/* Inferno scheduling settings */}
-            <div>
+            <div className="border-t border-black/10 dark:border-white/10 pt-3">
               <p className="text-sm font-medium mb-2">Inferno Scheduling</p>
               <select
                 value={infernoAuto}
@@ -1439,7 +1552,6 @@
                   const val = e.target.value;
                   lsSet("inferno:auto", val);
                   setInfernoAuto(val);
-                  // when turning on, schedule next from today; when off, clear due
                   if(val !== "off"){
                     const next = addDays(todayISO(), parseInt(val,10));
                     lsSet("inferno:next_due", next);
@@ -1462,16 +1574,19 @@
               </p>
             </div>
 
-            <div>
+            {/* Default modality quick choose */}
+            <div className="border-t border-black/10 dark:border-white/10 pt-3">
               <p className="text-xs text-gray-500 dark:text-gray-400">Default Modality</p>
               <div className="mt-1">
                 <ModalityToggles
                   modality={session?.meta?.modality==='hiit'?'bodyweight':modality}
                   setModality={m=>{ if(m==='hiit')return; setModality(m); const cur=ensurePinnedFor(m); setSession(cur); }}
                   lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
+                  enabled={enabled}
                 />
               </div>
             </div>
+
             <div className="flex gap-2">
               <button onClick={openWarmup} className="btn bg-emerald-700 w-full">Warm-up</button>
               <button onClick={openHiitChooser} className="btn bg-indigo-600 w-full">Inferno HIIT</button>
@@ -1492,7 +1607,7 @@
         return PageTrain;
       }
 
-      // Gate mode landing (Daily Recovery Check vóór training)
+      // Gate mode landing (Daily Recovery Check vóór training) — with 0–5 scales
       if (recoveryMode==="gate" && route==="gate") {
         return (
           <div className="mx-auto w-full max-w-md md:max-w-2xl min-h-screen flex items-start pt-4">
@@ -1503,35 +1618,25 @@
               </div>
               <div className="border border-black/10 dark:border-white/10 rounded-xl p-4 mb-4">
                 <p className="font-semibold mb-2">Daily Recovery Check</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-2">
-                  {[
-                    ['sleep','Sleep'],['energy','Energy'],['body','Body']
-                  ].map(([k,l])=>(
-                    <div key={k} className="flex items-center gap-3">
-                      <span className="w-16">{l}</span>
-                      <input
-                        type="range" min="0" max="5" value={recovery[k]}
-                        className="w-full h-4"
-                        onChange={e=>{
-                          const next={...recovery,[k]:parseInt(e.target.value,10)};
-                          next.total=next.sleep+next.energy+next.body;
-                          next.gate=next.total>=11?'TRAIN':next.total>=7?'ACTIVE RECOVERY':'FULL REST';
-                          setRecovery(next);
-                        }}
-                      />
-                      <span className="w-6 text-center">{recovery[k]}</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-sm">Total: {recovery.total||0} → <strong>{recovery.gate||'FULL REST'}</strong></p>
+
+                <ScoreSelector label="Sleep Quality" keyName="sleep" value={sleepScore} onChange={setSleepScore}/>
+                <ScoreSelector label="Energy" keyName="energy" value={energyScore} onChange={setEnergyScore}/>
+                <ScoreSelector label="Body Readiness" keyName="body" value={bodyScore} onChange={setBodyScore}/>
+
+                <p className="text-sm mt-1">Total: {totalRecovery||0} → <strong>{gateDecision.toUpperCase()}</strong></p>
+
                 <div className="flex flex-col md:flex-row gap-2 mt-3">
                   <button className="btn bg-blue-600 w-full" onClick={()=>{
-                    const routeChosen = (recovery.total||0)>=11 ? "train" : ( (recovery.total||0)>=7 ? "recovery" : "fullrest");
+                    const routeChosen = gateDecision;
                     lsSet("recovery:stamp", todayStr());
                     lsSet("recovery:lastRoute", routeChosen);
                     setRoute(routeChosen);
                   }}>Continue</button>
-                  <button className="btn bg-gray-600 w-full" onClick={handleGateSkip}>Skip today</button>
+                  <button className="btn bg-gray-600 w-full" onClick={()=>{
+                    lsSet("recovery:stamp", todayStr());
+                    lsSet("recovery:lastRoute","train");
+                    setRoute("train");
+                  }}>Skip today</button>
                 </div>
                 <p className="text-xs text-gray-400 mt-2">We remember your choice until midnight.</p>
               </div>
@@ -1545,7 +1650,7 @@
         <AppShell
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          onToggleDark={toggleDark}
+          onToggleDark={()=>document.documentElement.classList.toggle('dark')}
           calm={calm}
           setCalm={setCalm}
           recoveryMode={recoveryMode}
@@ -1559,7 +1664,10 @@
     }
 
     /* ======= Modality Toggles / Performance ======= */
-    function ModalityToggles({ modality, setModality, lastModalityVisual }) {
+    function ModalityToggles({ modality, setModality, lastModalityVisual, enabled }) {
+      const order = ["kettlebell","barbell","bodyweight"];
+      const visible = order.filter(id => !enabled || enabled[id]);
+
       function Item({ id, label }){
         const active = (modality===id);
         const wasLast = (id===lastModalityVisual);
@@ -1582,11 +1690,16 @@
           </label>
         );
       }
+
+      if (visible.length===0) {
+        return <div className="text-sm text-gray-500 dark:text-gray-400">No modalities enabled.</div>;
+      }
+
       return (
         <div className="flex flex-wrap gap-2">
-          <Item id="kettlebell" label="Kettlebell" />
-          <Item id="barbell" label="Barbell" />
-          <Item id="bodyweight" label="Bodyweight" />
+          {visible.includes("kettlebell") && <Item id="kettlebell" label="Kettlebell" />}
+          {visible.includes("barbell") && <Item id="barbell" label="Barbell" />}
+          {visible.includes("bodyweight") && <Item id="bodyweight" label="Bodyweight" />}
         </div>
       );
     }
