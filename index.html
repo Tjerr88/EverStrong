@@ -520,7 +520,6 @@
       { k: "Double Front Squat", note: "5 reps" },
       { k: "Snatch",        note: "5 reps each arm" }
     ];
-    /* ==== Bodyweight review (SFB) ==== */
     const BW_REVIEW_NOTE =
       "If you successfully completed all prescribed reps and sets for all bodyweight movements in this phase, you can progress to the next cycle with harder variations (or higher volume). Or repeat the same cycle if you struggled.";
     const BW_REVIEW_ITEMS = [
@@ -729,7 +728,7 @@
 
       // GFM Ankles
       "Ankle Series (Up/Down, In/Out, Rotations)",
-      "Figure 8 with Toes and Ankles",
+      "Figure 8 with Toes and Ankle",
       "Snail Crawl → Frog → Crab Flow",
 
       // GFM Spine & Neck
@@ -893,10 +892,13 @@
       const [lastCompletedModality, setLastCompletedModality] = useState(lsGet("lastCompletedModality", null));
       const [suggestion, setSuggestion] = useState(null);
 
-      // Inferno auto schedule
+      // Inferno suggestion (friendly quick button)
       const [infernoAuto, setInfernoAuto] = useState(lsGet("inferno:auto","off")); // "off" | "14" | "21"
       const [infernoNextDue, setInfernoNextDue] = useState(lsGet("inferno:next_due", null));
-      const [infernoDueNow, setInfernoDueNow] = useState(false);
+      const infernoDueNow = useMemo(()=>{
+        if(infernoAuto==="off" || !infernoNextDue) return false;
+        return isSameOrBefore(infernoNextDue, todayISO());
+      }, [infernoAuto, infernoNextDue]);
 
       function engineFor(m){ return m==='kettlebell'?SFG : m==='barbell'?SFL : SFB; }
       function currentKey(m){ return `current:${m}`; }
@@ -926,15 +928,6 @@
         return cur;
       }
       function recomputeSuggestion(baseMod = null){
-        const auto = lsGet("inferno:auto","off");
-        const nextDue = lsGet("inferno:next_due", null);
-        if(auto!=="off" && nextDue && isSameOrBefore(nextDue, todayISO())){
-          setSuggestion({
-            modality: 'hiit',
-            session: { meta:{ modality:'hiit', su:400, date:new Date().toISOString() }, main: ["Inferno session (choose target 300/400/500)"] }
-          });
-          return;
-        }
         const last = baseMod || lastCompletedModality || getLatestMainModalityFromHistory() || lsGet("last_modality", null);
         const pool = enabledList;
         const candidates = last ? pool.filter(m=>m!==last) : pool;
@@ -962,28 +955,19 @@
 
       useEffect(()=>{ recomputeSuggestion(); },[lastCompletedModality]);
 
+      // Initialize inferno next_due on first enable
       useEffect(()=>{
-        const auto = lsGet("inferno:auto","off");
-        let next = lsGet("inferno:next_due", null);
-        if(auto !== "off"){
+        if(infernoAuto!=="off"){
+          let next = lsGet("inferno:next_due", null);
           if(!next){
-            next = addDays(todayISO(), parseInt(auto,10));
+            next = addDays(todayISO(), parseInt(infernoAuto,10));
             lsSet("inferno:next_due", next);
           }
-          setInfernoNextDue(next);
-          setInfernoDueNow(isSameOrBefore(next, todayISO()));
-        } else {
-          setInfernoNextDue(null);
-          setInfernoDueNow(false);
+          setInfernoNextDue(lsGet("inferno:next_due", next));
         }
       }, []);
 
       function toggleDark(){ document.documentElement.classList.toggle('dark'); }
-
-      function lockToday(routeChosen){
-        lsSet("recovery:stamp", todayStr());
-        lsSet("recovery:lastRoute", routeChosen);
-      }
 
       function restartSelected(){
         if(session && session.meta && ['hiit','recovery','breathing','warmup','kettlebell_test','barbell_test','bodyweight_test'].includes(session.meta.modality)){
@@ -1165,7 +1149,7 @@
           return;
         }
 
-        // HIIT: log + autoschedule (if on)
+        // HIIT: log + schedule next suggestion (friendly)
         if(metaMod==='hiit'){
           try{localStorage.removeItem(currentKey('hiit'));}catch(e){};
           const histKeySpecial = historyKey('hiit');
@@ -1179,7 +1163,6 @@
             const nextDue = addDays(todayISO(), interval);
             lsSet("inferno:next_due", nextDue);
             setInfernoNextDue(nextDue);
-            setInfernoDueNow(false);
           }
 
           setSession(null);
@@ -1259,84 +1242,52 @@
       // Pages
       const PageTrain = (
         <>
-          {/* Inferno due card */}
-          {infernoAuto!=="off" && infernoDueNow && (
-            <CalmCard title="Inferno (HIIT) due" subtitle={`Scheduled date: ${new Date(infernoNextDue).toLocaleDateString()}`}>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                Longevity check: it’s time for a metabolic hit. Pick a target:
-              </p>
-              <div className="flex flex-col md:flex-row gap-2">
-                {[300,400,500].map(val=>(
-                  <button key={val} className="btn bg-indigo-600 w-full"
-                    onClick={()=>{ pinInferno(val); }}
-                  >
-                    Start Inferno {val}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-2 flex gap-2">
-                <button className="btn bg-gray-700 w-full"
-                  onClick={()=>{
-                    const next = addDays(todayISO(), 3);
-                    lsSet("inferno:next_due", next);
-                    setInfernoNextDue(next);
-                    setInfernoDueNow(false);
-                  }}
-                >
-                  Snooze 3 days
-                </button>
-                <button className="btn bg-gray-700 w-full"
-                  onClick={()=>{
-                    const interval = parseInt(lsGet("inferno:auto","14"),10) || 14;
-                    const next = addDays(todayISO(), interval);
-                    lsSet("inferno:next_due", next);
-                    setInfernoNextDue(next);
-                    setInfernoDueNow(false);
-                  }}
-                >
-                  Skip to next cycle
-                </button>
-              </div>
-            </CalmCard>
-          )}
-
           {/* Suggested Next */}
           {suggestion && suggestion.session && enabledList.length >= (suggestion.modality==='hiit' ? 0 : 2) && (
             <CalmCard title="Suggested Next">
               <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                 Based on your last session, try this next:
               </p>
-              {suggestion.modality==='hiit' ? (
-                <div className="flex flex-col md:flex-row gap-2">
-                  {[300,400,500].map(val=>(
-                    <button key={val} className="btn bg-indigo-600 w-full" onClick={()=>pinInferno(val)}>
-                      Start Inferno {val}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <button
-                  className="btn bg-blue-600 w-full"
-                  onClick={()=>{
-                    setModality(suggestion.modality);
-                    const pinned = ensurePinnedFor(suggestion.modality);
-                    setSession(pinned);
-                  }}
-                >
-                  {suggestion.modality.charAt(0).toUpperCase()+suggestion.modality.slice(1)} — {suggestion.session.meta.cycle}.{suggestion.session.meta.phase}.{suggestion.session.meta.session}
-                </button>
-              )}
+              <button
+                className="btn bg-blue-600 w-full"
+                onClick={()=>{
+                  setModality(suggestion.modality);
+                  const pinned = ensurePinnedFor(suggestion.modality);
+                  setSession(pinned);
+                }}
+              >
+                {suggestion.modality.charAt(0).toUpperCase()+suggestion.modality.slice(1)} — {suggestion.session.meta.cycle}.{suggestion.session.meta.phase}.{suggestion.session.meta.session}
+              </button>
             </CalmCard>
           )}
 
-          {/* Quick Switch */}
-          <CalmCard title="Choose Modality">
-            <ModalityToggles
-              modality={session?.meta?.modality==='hiit'?'bodyweight':modality}
-              setModality={m=>{ if(m==='hiit')return; setModality(m); const cur=ensurePinnedFor(m); setSession(cur); }}
-              lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
-              enabled={enabled}
-            />
+          {/* Quick Switch + Inferno Ready (friendly button) */}
+          <CalmCard title="Quick Actions" subtitle="Pick your modality or open a warm-up.">
+            <div className="flex flex-wrap gap-2">
+              <ModalityToggles
+                modality={session?.meta?.modality==='hiit'?'bodyweight':modality}
+                setModality={m=>{ if(m==='hiit')return; setModality(m); const cur=ensurePinnedFor(m); setSession(cur); }}
+                lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
+                enabled={enabled}
+              />
+              <button onClick={openWarmup} className="btn bg-emerald-700">Warm-up</button>
+
+              {/* Inferno Ready button shows only when due; never forced */}
+              {infernoAuto!=="off" && infernoDueNow && (
+                <button
+                  className="btn bg-indigo-600"
+                  title={`It's time again (due since ${new Date(infernoNextDue).toLocaleDateString()})`}
+                  onClick={()=>pinInferno(400)}
+                >
+                  Inferno (Ready)
+                </button>
+              )}
+            </div>
+            {infernoAuto!=="off" && infernoDueNow && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                It’s been {infernoAuto} days since your last Inferno — you’re ready for another dose.
+              </p>
+            )}
           </CalmCard>
 
           {!session && (
@@ -1545,7 +1496,7 @@
 
             {/* Inferno scheduling settings */}
             <div className="border-t border-black/10 dark:border-white/10 pt-3">
-              <p className="text-sm font-medium mb-2">Inferno Scheduling</p>
+              <p className="text-sm font-medium mb-2">Inferno Suggestion</p>
               <select
                 value={infernoAuto}
                 onChange={e=>{
@@ -1556,21 +1507,19 @@
                     const next = addDays(todayISO(), parseInt(val,10));
                     lsSet("inferno:next_due", next);
                     setInfernoNextDue(next);
-                    setInfernoDueNow(isSameOrBefore(next, todayISO()));
                   } else {
                     lsSet("inferno:next_due", null);
                     setInfernoNextDue(null);
-                    setInfernoDueNow(false);
                   }
                 }}
                 className="border rounded p-2 w-full bg-white dark:bg-gray-700"
               >
-                <option value="off">Off (manual only)</option>
-                <option value="14">Every 14 days</option>
-                <option value="21">Every 21 days</option>
+                <option value="off">Off (no suggestion)</option>
+                <option value="14">Suggest every 14 days</option>
+                <option value="21">Suggest every 21 days</option>
               </select>
               <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Auto-schedule Inferno after your last completed session. A due card will appear on the Train tab.
+                A friendly “Inferno (Ready)” button will appear in Quick Actions when it’s time again. No pressure—recovery gates still apply.
               </p>
             </div>
 
@@ -1627,10 +1576,9 @@
 
                 <div className="flex flex-col md:flex-row gap-2 mt-3">
                   <button className="btn bg-blue-600 w-full" onClick={()=>{
-                    const routeChosen = gateDecision;
                     lsSet("recovery:stamp", todayStr());
-                    lsSet("recovery:lastRoute", routeChosen);
-                    setRoute(routeChosen);
+                    lsSet("recovery:lastRoute", gateDecision);
+                    setRoute(gateDecision);
                   }}>Continue</button>
                   <button className="btn bg-gray-600 w-full" onClick={()=>{
                     lsSet("recovery:stamp", todayStr());
