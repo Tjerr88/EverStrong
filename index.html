@@ -62,6 +62,128 @@
     }
     function todayISO(){ const d=new Date(); d.setHours(0,0,0,0); return d.toISOString(); }
 
+    // --- Video link helpers ---
+    function getVideoLinks(){ return lsGet('video:links', {}); }
+    function saveVideoLink(name, url){
+      const map = getVideoLinks();
+      if(!url){ delete map[name]; } else { map[name] = url; }
+      lsSet('video:links', map);
+    }
+
+    // --- YouTube helpers (nieuw) ---
+    function getYouTubeId(url){
+      if(!url) return null;
+      try{
+        const u = new URL(url);
+        if(u.hostname.includes('youtu.be')){
+          const id = u.pathname.split('/').filter(Boolean)[0];
+          return id || null;
+        }
+        if(u.hostname.includes('youtube.com') || u.hostname.includes('m.youtube.com')){
+          const v = u.searchParams.get('v');
+          if(v) return v;
+          const shorts = u.pathname.match(/\/shorts\/([^/?#]+)/);
+          if(shorts) return shorts[1];
+          const embed = u.pathname.match(/\/embed\/([^/?#]+)/);
+          if(embed) return embed[1];
+        }
+      }catch(e){}
+      return null;
+    }
+    function getYouTubeThumb(id, quality='mq'){
+      const q = quality==='hq' ? 'hqdefault.jpg' : quality==='mq' ? 'mqdefault.jpg' : 'default.jpg';
+      return `https://img.youtube.com/vi/${id}/${q}`;
+    }
+
+    // --- Eénmalige seed van YouTube-links (non-destructief) ---
+    const VIDEO_LINKS_SEED = {
+      // Kettlebell — SFG
+      "One-Legged Deadlift": "https://www.youtube.com/watch?v=wW57VmUxefg",
+      "Double Sumo Deadlift": "https://www.youtube.com/watch?v=ymDxI-3cgoI",
+      "Single Leg Glute Bridge": "https://www.youtube.com/shorts/dgJoc5mbNzA",
+      "One-arm Swing": "https://www.youtube.com/watch?v=UYBKrK1y6ww",
+      "(Side Stepping) Two-arm Swing": "https://www.youtube.com/watch?v=UwYcntzzUiU",
+      "Double Swing": "https://www.youtube.com/shorts/0f5oD464u1Q",
+
+      "(3 Min) Get Up": "https://www.youtube.com/watch?v=sgd8n917Zv0",
+      "Supine to Sit Up": "https://www.youtube.com/watch?v=dv_nNf43Qck",
+      "Windmill": "https://www.youtube.com/shorts/EZWHnzAjctU",
+      "Bent Press": "https://www.youtube.com/watch?v=cFmSd61PPTI",
+      "Supine to Bridge": "https://www.youtube.com/watch?v=r_sJKLowdak",
+      "Supine to Half Kneel": "https://www.youtube.com/watch?v=r_sJKLowdak",
+      "Half Kneel to Stand": "https://www.youtube.com/watch?v=1XOHgBZlCpo",
+
+      "HS-Plank": "https://www.youtube.com/watch?v=w_KhpjMWVNM",
+      "Front Rack Carry": "https://www.youtube.com/watch?v=jumVlXfY1Pc",
+      "Single Dead Clean": "https://www.youtube.com/shorts/WFnnHBpvttE",
+      "Double Clean": "https://www.youtube.com/shorts/gEWRc6rWFkg",
+      "Pull Up / Chin Up": "https://www.youtube.com/watch?v=8mryJ3w2S78",
+      "Pull Up/Chin Up": "https://www.youtube.com/watch?v=8mryJ3w2S78",
+      "One-arm Row": "https://www.youtube.com/shorts/pvRXtyBkO-s",
+
+      "B-stance Goblet Squat": "https://www.youtube.com/shorts/QEZpCqjzHAA",
+      "Single Front Squat": "https://www.youtube.com/watch?v=SlPwjU6I9gk",
+      "Paused Front Squat": "https://www.youtube.com/shorts/B7v20H9NAmI",
+      "Double Front Squat": "https://www.youtube.com/shorts/l3TxmNX6C8s",
+      "Athletic Lunge": "https://www.youtube.com/shorts/nDFVS8Hg3xw",
+      "Bottom Up Squat": "https://www.youtube.com/shorts/d8jEluh8tFc",
+
+      "Military Press": "https://www.youtube.com/shorts/oYubnI4aXD8",
+      "Top Down Press": "https://www.youtube.com/shorts/ezAs5iMjy0A",
+      "Half Kneeling Press": "https://www.youtube.com/shorts/n0peUzKZ-PU",
+      "Floor Press": "https://www.youtube.com/shorts/1QMCUbRkQFA",
+      "Double Push Press": "https://www.youtube.com/watch?v=WwluL1MF0jA",
+      "Double Push Jerk": "https://www.youtube.com/shorts/FhzocaH1MFs",
+
+      "Overhead Carry": "https://www.youtube.com/watch?v=54POVWkWjEs",
+      "Snatch": "https://www.youtube.com/watch?v=QsuJ6973OFc",
+      "Low Pull Snatch": "https://www.youtube.com/shorts/GK8i2xYGaOM",
+      "High Pull": "https://www.youtube.com/watch?v=mP1BHxBeAEM",
+      "Front/Side Raise Snatch": "https://www.youtube.com/shorts/7uPCrlXxW8s",
+      "Double Snatch": "https://www.youtube.com/shorts/3Y73hcmzSN0",
+
+      "Double Clean & Press": "https://www.youtube.com/shorts/S6o26rzFPEs",
+      "Double Clean & Front Squat": "https://www.youtube.com/watch?v=t7vqdHxMVGY",
+      "Double Snatch & Overhead Walk": "https://www.youtube.com/shorts/O_jKGm7UjWE",
+      "Double Clean & Jerk": "https://www.youtube.com/shorts/tonuNZZTPlA",
+      "Double Snatch & Press": "https://www.youtube.com/watch?v=bsJpa1Bhe84",
+      "Double Front Squat & Push Press": "https://www.youtube.com/shorts/HsAwg5kCORg",
+
+      // Barbell — SFL
+      "Back Squat": "https://www.youtube.com/watch?v=-bJIpOq-LWk",
+      "Front Squat": "https://www.youtube.com/watch?v=HHxNbhP16UE",
+      "Zercher Squat": "https://www.youtube.com/shorts/3F9ZohTI-lg",
+
+      "Bench Press": "https://www.youtube.com/shorts/hWbUlkb5Ms4",
+      "Incline Bench Press": "https://www.youtube.com/watch?v=lJ2o89kcnxY",
+      "Shoulder Press": "https://www.youtube.com/watch?v=G2qpTG1Eh40",
+
+      "Conventional Deadlift": "https://www.youtube.com/shorts/ZaTM37cfiDs",
+      "Goodmorning": "https://www.youtube.com/shorts/7cpldMZjLOs",
+      "Sumo Deadlift": "https://www.youtube.com/watch?v=pfSMst14EFk",
+
+      // Bodyweight — SFB
+      "Box Pistol": "https://www.youtube.com/watch?v=ctffzu0jWu0",
+      "Top Down Pistol": "https://www.youtube.com/shorts/D5Iib9ZEkk8",
+      "Full Pistol": "https://www.youtube.com/shorts/AF3rz1fOIFk",
+
+      "One-arm One-leg Push Up": "https://www.youtube.com/shorts/wnggEdKfySU",
+      "Wall HSPU (assist)": "https://www.youtube.com/watch?v=0wDEO6shVjc",
+      "Dips": "https://www.youtube.com/watch?v=Vt0lO4jpIDo",
+
+      "Tactical Pull Up": "https://www.youtube.com/watch?v=AcI6bGetbBU",
+      "Hanging Leg Raise": "https://www.youtube.com/watch?v=7FwGZ8qY5OU",
+      "Front Lever (prog)": "https://www.youtube.com/shorts/pDSQrioCAP0"
+    };
+    (function seedVideoLinksOnce(){
+      const cur = getVideoLinks();
+      let changed = false;
+      for (const [name, url] of Object.entries(VIDEO_LINKS_SEED)) {
+        if (!cur[name]) { cur[name] = url; changed = true; }
+      }
+      if (changed) lsSet('video:links', cur);
+    })();
+
     /* ================== Engines ================== */
     function createEngine({ key, patterns, cycleVolumes, sessionsPerCycle=18 }) {
       const saved = lsGet(key, null);
@@ -339,7 +461,7 @@
                   className={`px-3 py-1.5 rounded-lg text-sm transition ${
                     activeTab===t.id
                     ? "bg-blue-600 text-white"
-                    : "hover:bg-black/5 dark:hover:bg-white/5"
+                    : "hover:bg-black/5 dark:hover:bg:white/5"
                   }`}
                   onClick={()=>{ setActiveTab(t.id); lsSet('ui:tab', t.id); }}
                 >
@@ -353,7 +475,7 @@
           <dialog id="drawer" className="rounded-lg p-0 w-72 bg-white dark:bg-gray-900 border border-black/10 dark:border-white/10">
             <div className="p-3 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
               <span className="font-semibold">Menu</span>
-              <button onClick={()=>document.getElementById("drawer").close()} className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">✕</button>
+              <button onClick={()=>document.getElementById("drawer").close()} className="p-1 rounded hover:bg-black/5 dark:hover:bg:white/5">✕</button>
             </div>
             <div className="p-2">
               {tabs.map(t=>(
@@ -362,7 +484,7 @@
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm mb-1 ${
                     activeTab===t.id
                     ? "bg-blue-600 text-white"
-                    : "hover:bg-black/5 dark:hover:bg-white/5"
+                    : "hover:bg-black/5 dark:hover:bg:white/5"
                   }`}
                   onClick={()=>{ setActiveTab(t.id); lsSet('ui:tab', t.id); document.getElementById("drawer").close(); }}
                 >
@@ -423,7 +545,107 @@
       );
     }
 
-    /* ======= Session rendering ======= */
+    /* ======= Exercise Card (met klikbare YouTube-thumbnail) ======= */
+    function ExerciseCard({ line }) {
+      // Matcht: "Pattern: Exercise — details" of "* Exercise — details" of "Exercise — details"
+      const m = String(line).match(/^(?:\*\s*)?(?:(?<pattern>[^:]+):\s*)?(?<name>[^—]+?)\s*—\s*(?<details>.+)$/);
+      if(!m) return <p className="">{line}</p>;
+
+      const name = m.groups?.name?.trim() || "";
+      const pattern = m.groups?.pattern?.trim() || "";
+      const details = m.groups?.details?.trim() || "";
+
+      const [open, setOpen] = React.useState(false);
+      const [url, setUrl] = React.useState(getVideoLinks()[name] || "");
+
+      const title = pattern ? `${pattern}: ${name} — ${details}` : `${name} — ${details}`;
+
+      const ytId = getYouTubeId(url);
+      const thumb = ytId ? getYouTubeThumb(ytId, 'mq') : null;
+
+      return (
+        <section className="rounded-xl border border-black/10 dark:border-white/10">
+          <button
+            onClick={()=>setOpen(o=>!o)}
+            className="w-full flex items-center justify-between px-3 py-2"
+          >
+            <span className="font-medium">{title}</span>
+            <span className="text-sm opacity-70">{open ? "−" : "+"}</span>
+          </button>
+
+          {open && (
+            <div className="px-3 pb-3 space-y-3">
+              <div className="flex items-start gap-3">
+                {/* Klikbare thumbnail */}
+                {thumb ? (
+                  <button
+                    className="relative rounded-lg overflow-hidden shrink-0"
+                    onClick={()=>window.open(url, "_blank", "noopener,noreferrer")}
+                    title="Open video"
+                  >
+                    <img
+                      src={thumb}
+                      alt={`${name} demo`}
+                      className="w-40 h-24 object-cover"
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                    <span className="absolute inset-0 grid place-items-center">
+                      <span className="bg-black/40 rounded-full p-2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" className="text-white">
+                          <path fill="currentColor" d="M8 5v14l11-7z"/>
+                        </svg>
+                      </span>
+                    </span>
+                  </button>
+                ) : (
+                  <div className="w-40 h-24 rounded-lg grid place-items-center bg-gray-200 dark:bg-gray-800 text-xs text-gray-500">
+                    Geen thumbnail
+                  </div>
+                )}
+
+                {/* Linkbeheer + knoppen */}
+                <div className="flex-1 space-y-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      className="w-full rounded px-2 py-1 bg-white dark:bg-gray-800 border border-black/10 dark:border-white/10"
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      value={url}
+                      onChange={(e)=>setUrl(e.target.value)}
+                      onBlur={()=>saveVideoLink(name, url.trim())}
+                    />
+                    <button
+                      className="btn-sm bg-blue-600"
+                      onClick={()=>{
+                        if(!url) return;
+                        saveVideoLink(name, url.trim());
+                        window.open(url, "_blank", "noopener,noreferrer");
+                      }}
+                      disabled={!url}
+                      title={url ? "Open video in nieuw tabblad" : "Voeg eerst een link toe"}
+                    >
+                      Bekijk demo
+                    </button>
+                    {url && (
+                      <button
+                        className="btn-sm bg-gray-700"
+                        onClick={()=>{ setUrl(""); saveVideoLink(name, ""); }}
+                        title="Link verwijderen"
+                      >
+                        Verwijder link
+                      </button>
+                    )}
+                  </div>
+                  {!url && <p className="text-xs text-gray-500 dark:text-gray-400">Plak een YouTube-URL voor een klikbare thumbnail. Ondersteunt <code>watch?v=</code>, <code>youtu.be</code>, <code>shorts</code> en <code>embed</code>.</p>}
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      );
+    }
+
+    /* ======= Session rendering (met kaarten in Train) ======= */
     function Timer({ elapsed, setElapsed, running, setRunning }) {
       const ref=useRef(null);
       useEffect(()=>{
@@ -450,6 +672,9 @@
       const isRecovery = m.modality==='recovery';
       const isBreathing = m.modality==='breathing';
       const isWarmup = m.modality==='warmup';
+      const isStrength = ['kettlebell','barbell','bodyweight'].includes(m.modality);
+      const allowExerciseCards = isHIIT || isStrength;
+
       const title = isHIIT
         ? `Inferno${m.su?` • ${m.su} SU`:''}${m.date ? ` • ${new Date(m.date).toLocaleDateString()}` : ''}`
         : isRecovery
@@ -460,12 +685,29 @@
               ? `Warm-up`
               : (m.cycle && m.phase && m.session) ? `${(m.modality||'Session')[0].toUpperCase()}${(m.modality||'session').slice(1)} ${m.cycle}.${m.phase}.${m.session}` : `Today's Session`;
 
+      const lines = session.main || [];
+
       return (
         <div>
           <h3 className="font-semibold mb-2 text-base">{title}</h3>
-          <div className="text-base space-y-1">
-            {renderSmartList(session.main || [])}
+
+          <div className="space-y-2">
+            {lines.map((raw, idx) => {
+              const line = (raw==null) ? "" : String(raw).trim();
+              if(line==="") return <div key={"sp-"+idx} className="h-2" />;
+
+              if(allowExerciseCards && line.includes("—")) {
+                return <ExerciseCard key={"ex-"+idx} line={line} />;
+              }
+
+              if(line.startsWith("* ")) {
+                return <ul key={"ul-"+idx} className="list-disc ml-6"><li>{line.slice(2)}</li></ul>;
+              }
+
+              return <p key={"p-"+idx} className="font-medium mt-3">{line}</p>;
+            })}
           </div>
+
           <p className="text-xs text-gray-400 mt-2">Pinned until you press “Complete”.</p>
         </div>
       );
@@ -668,7 +910,7 @@
     /* ===== ACTIVE RECOVERY (3 opties + Resilient lijst) ===== */
     function chooseResilient(){
       const lines = [
-        "Resilient — quality over quantity; pain‑free range. Guide: 2–3 sets • 3–5 reps or 10–30s holds.",
+        "Resilient — quality over quantity; pain-free range. Guide: 2–3 sets • 3–5 reps or 10–30s holds.",
         "",
         "Hack Squat",
         "* 2×5–8",
