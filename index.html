@@ -61,7 +61,6 @@
       return new Date(aISO).getTime() <= new Date(bISO).getTime();
     }
     function todayISO(){ const d=new Date(); d.setHours(0,0,0,0); return d.toISOString(); }
-
     // --- Video link helpers ---
     function getVideoLinks(){ return lsGet('video:links', {}); }
     function saveVideoLink(name, url){
@@ -70,7 +69,7 @@
       lsSet('video:links', map);
     }
 
-    // --- YouTube helpers (nieuw) ---
+    // --- YouTube helpers ---
     function getYouTubeId(url){
       if(!url) return null;
       try{
@@ -117,8 +116,7 @@
       "Front Rack Carry": "https://www.youtube.com/watch?v=jumVlXfY1Pc",
       "Single Dead Clean": "https://www.youtube.com/shorts/WFnnHBpvttE",
       "Double Clean": "https://www.youtube.com/shorts/gEWRc6rWFkg",
-      "Pull Up / Chin Up": "https://www.youtube.com/watch?v=8mryJ3w2S78",
-      "Pull Up/Chin Up": "https://www.youtube.com/watch?v=8mryJ3w2S78",
+      "Pullover": "https://www.youtube.com/watch?v=1-3Ul1YgPOg",
       "One-arm Row": "https://www.youtube.com/shorts/pvRXtyBkO-s",
 
       "B-stance Goblet Squat": "https://www.youtube.com/shorts/QEZpCqjzHAA",
@@ -184,6 +182,12 @@
       if (changed) lsSet('video:links', cur);
     })();
 
+    /* ================== Ladder rules (1:1 met Python) ================== */
+    const SWING_LADDER_EX = ["One-arm Swing","(Side Stepping) Two-arm Swing","Snatch","High Pull"];
+    const EVEN_LADDER_EX  = ["Double Push Press","Double Push Jerk","Double Clean","Double Swing","Double Snatch","Double Front Squat"];
+    const TIME_BASED_EX   = ["Overhead Carry","Front Rack Carry","HS-Plank"];
+    const HYBRID_EX       = ["Double Clean & Press","Double Clean & Front Squat","Double Snatch & Overhead Walk","Double Clean & Jerk","Double Snatch & Press","Double Front Squat & Push Press"];
+
     /* ================== Engines ================== */
     function createEngine({ key, patterns, cycleVolumes, sessionsPerCycle=18 }) {
       const saved = lsGet(key, null);
@@ -198,19 +202,114 @@
         all_sessions: (saved && saved.all_sessions) || [],
 
         calculate_volume(exercise, volume_type){
-          return this.cycleVolumes[this.current_phase][volume_type];
+          const c = this.current_phase;
+          const base = this.cycleVolumes[c][volume_type];
+
+          // (3 Min) Get Up — cycle-based tiny rep counts
+          if (exercise === "(3 Min) Get Up") {
+            if (volume_type === "low") return c;
+            if (volume_type === "medium") return c + 1;
+            if (volume_type === "high") return c + 2;
+          }
+
+          // Hybrids always low volume
+          if (HYBRID_EX.includes(exercise)) {
+            return this.cycleVolumes[c]["low"];
+          }
+
+          // Time-based (seconds)
+          if (TIME_BASED_EX.includes(exercise)) {
+            if (c === 1) return ({ low:30,  medium:60,  high:90  })[volume_type];
+            if (c === 2) return ({ low:45,  medium:75,  high:105 })[volume_type];
+            return           ({ low:60,  medium:90,  high:120 })[volume_type]; // c===3
+          }
+
+          // Default reps
+          return base;
         },
+
         get_ladder_pattern(exercise, volume){
-          const c=this.current_phase;
-          if (c===1){ if(volume===10)return["1-2-3-4",10]; if(volume===20)return["2x 1-2-3-4",20]; if(volume===30)return["3x 1-2-3-4",30]; }
-          if (c===2){ if(volume===15)return["1-2-3-4-5",15]; if(volume===25)return["1-2-3-4-5 + 1-2-3-4",25]; if(volume===40)return["2x 1-2-3-4-5 + 1-2-3-4",40]; }
-          if (c===3){ if(volume===20)return["2x 1-2-3-4",20]; if(volume===30)return["2x 1-2-3-4-5",30]; if(volume===50)return["3x 1-2-3-4-5 + 1-2",50]; }
-          return [String(volume)+" reps", volume];
+          const c = this.current_phase;
+
+          // Time-based
+          if (TIME_BASED_EX.includes(exercise)) {
+            return [`${volume} sec`, volume];
+          }
+
+          // Any Get Up wording → reps
+          if (exercise.includes("Get Up")) {
+            return [`${volume} reps`, volume];
+          }
+
+          // Hybrids — cycle-based ladders (always low volume)
+          if (HYBRID_EX.includes(exercise)) {
+            if (c === 1) return ["1-2-3-4", 10];
+            if (c === 2) return ["1-2-3-4-5", 15];
+            return ["2x 1-2-3-4", 20]; // c===3
+          }
+
+          // Swing/asymmetric ladders
+          if (SWING_LADDER_EX.includes(exercise)) {
+            if (c === 1) {
+              if (volume === 10) return ["10", 10];
+              if (volume === 20) return ["5-15", 20];
+              if (volume === 30) return ["5-10-15", 30];
+            } else if (c === 2) {
+              if (volume === 15) return ["5-10", 15];
+              if (volume === 25) return ["10-15", 25];
+              if (volume === 40) return ["5-15-20", 40];
+            } else { // c===3
+              if (volume === 20) return ["5-15", 20];
+              if (volume === 30) return ["10-20", 30];
+              if (volume === 50) return ["10-15-25", 50];
+            }
+          }
+
+          // Even ladders
+          if (EVEN_LADDER_EX.includes(exercise)) {
+            if (c === 1) {
+              if (volume === 10) return ["4-6", 10];
+              if (volume === 20) return ["2-4-6-8", 20];
+              if (volume === 30) return ["2-4-6-8-10", 30];
+            } else if (c === 2) {
+              if (volume === 15) return ["2-4-6 + 1-2", 15];
+              if (volume === 25) return ["2x 2-4-6 + 1", 25];
+              if (volume === 40) return ["2-4-6-8-10 + 2-4-6", 40];
+            } else { // c===3
+              if (volume === 20) return ["2-4-6-8", 20];
+              if (volume === 30) return ["2-4-6-8-10", 30];
+              if (volume === 50) return ["2x 2-4-6-8 + 2-4", 50];
+            }
+          }
+
+          // Default ladders
+          if (c === 1) {
+            if (volume === 10) return ["1-2-3-4", 10];
+            if (volume === 20) return ["2x 1-2-3-4", 20];
+            if (volume === 30) return ["3x 1-2-3-4", 30];
+          } else if (c === 2) {
+            if (volume === 15) return ["1-2-3-4-5", 15];
+            if (volume === 25) return ["1-2-3-4-5 + 1-2-3-4", 25];
+            if (volume === 40) return ["2x 1-2-3-4-5 + 1-2-3-4", 40];
+          } else { // c===3
+            if (volume === 20) return ["2x 1-2-3-4", 20];
+            if (volume === 30) return ["2x 1-2-3-4-5", 30];
+            if (volume === 50) return ["3x 1-2-3-4-5 + 1-2", 50];
+          }
+
+          return [`${volume} reps`, volume];
         },
+
         get_volume_format(exercise, volume){
-          const [ladder,total]=this.get_ladder_pattern(exercise,volume);
-          return ladder===`${total} reps` ? `${total} reps` : `${total} reps (${ladder})`;
+          const [ladder, total] = this.get_ladder_pattern(exercise, volume);
+
+          // Time-based already shows "<sec> sec"
+          if (TIME_BASED_EX.includes(exercise)) return ladder;
+
+          if (ladder === `${total} reps` || ladder === `${total} rep(s)`) return `${total} reps`;
+          return `${total} reps (${ladder})`;
         },
+
         select_exercise_for_pattern(pattern){
           const list=this.patterns[pattern].slice();
           const pool=list.filter(ex=>this.last_session_exercises.indexOf(ex)===-1);
@@ -221,9 +320,14 @@
           const least=candidates.filter(ex=> (this.exercise_usage_count[ex]||0)===minUse );
           return least[Math.floor(Math.random()*least.length)];
         },
+
         select_volume_type(pattern, exercise, current_session_volumes){
+          // Hybrids always low
+          if (HYBRID_EX.includes(exercise)) return 'low';
+
           const vals=[]; for(const k in current_session_volumes){ vals.push(current_session_volumes[k]); }
           const highAlready = vals.indexOf('high')>-1;
+
           const entries = this.all_sessions.filter(s => s.phase===this.current_phase && s.exercise===exercise);
           let lowC=0, medC=0, highC=0;
           for(let i=0;i<entries.length;i++){
@@ -239,6 +343,7 @@
           if(avoid && choices.length>1) choices = choices.filter(t=>t!==avoid);
           return choices[Math.floor(Math.random()*choices.length)];
         },
+
         generate_single_session(){
           const session_number=(this.session_count%this.sessionsPerCycle)+1;
           const session_exercises=[]; const current_session_volumes={};
@@ -266,6 +371,7 @@
           this.persist();
           return { main, meta:{ modality:null, cycle:this.display_cycle_index, phase:this.current_phase, session:session_number, phase_end:(session_number===this.sessionsPerCycle) } };
         },
+
         persist(){
           lsSet(this.key,{
             session_count:this.session_count, current_phase:this.current_phase,
@@ -294,7 +400,7 @@
       patterns:{
         "Swing Pattern": ["One-Legged Deadlift","Double Sumo Deadlift","Single Leg Glute Bridge","One-arm Swing","(Side Stepping) Two-arm Swing","Double Swing"],
         "Get Up Pattern": ["(3 Min) Get Up","Supine to Sit Up","Windmill","Bent Press","Supine to Half Kneel","Half Kneel to Stand"],
-        "Clean Pattern": ["HS-Plank","Front Rack Carry","Single Dead Clean","Double Clean","Pull Up/Chin Up","One-arm Row"],
+        "Clean Pattern": ["HS-Plank","Front Rack Carry","Single Dead Clean","Double Clean","Pullover","One-arm Row"],
         "Squat Pattern": ["B-stance Goblet Squat","Single Front Squat","Paused Front Squat","Double Front Squat","Athletic Lunge","Bottom Up Squat"],
         "Press Pattern": ["Military Press","Top Down Press","Half Kneeling Press","Floor Press","Double Push Press","Double Push Jerk"],
         "Snatch Pattern": ["Overhead Carry","Snatch","Low Pull Snatch","High Pull","Front/Side Raise Snatch","Double Snatch"],
@@ -389,7 +495,6 @@
       { level:"Intermediate", name:"Bottom Triangle 4-6-8", pattern:"Inhale 4s • Exhale 6s • Hold 8s (bottom)", note:"Practice 5–20 minutes." },
       { level:"Advanced", name:"Bottom Triangle 6-8-12", pattern:"Inhale 6s • Exhale 8s • Hold 12s (bottom)", note:"Practice 5–20 minutes." }
     ];
-
     /* ======= UI helpers: list renderer ======= */
     function renderSmartList(lines){
       const out=[]; let buffer=[];
@@ -547,7 +652,6 @@
 
     /* ======= Exercise Card (met klikbare YouTube-thumbnail) ======= */
     function ExerciseCard({ line }) {
-      // Matcht: "Pattern: Exercise — details" of "* Exercise — details" of "Exercise — details"
       const m = String(line).match(/^(?:\*\s*)?(?:(?<pattern>[^:]+):\s*)?(?<name>[^—]+?)\s*—\s*(?<details>.+)$/);
       if(!m) return <p className="">{line}</p>;
 
@@ -576,7 +680,6 @@
           {open && (
             <div className="px-3 pb-3 space-y-3">
               <div className="flex items-start gap-3">
-                {/* Klikbare thumbnail */}
                 {thumb ? (
                   <button
                     className="relative rounded-lg overflow-hidden shrink-0"
@@ -604,7 +707,6 @@
                   </div>
                 )}
 
-                {/* Linkbeheer + knoppen */}
                 <div className="flex-1 space-y-2">
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input
@@ -957,36 +1059,29 @@
 
     /* ======= FULL GFM FLOW GENERATOR (General) ======= */
     const MOBILITY_DB_GENERAL = [
-      // GFM Hips
       "Figure 4 Position → Figure 4 Lunge → Half Heel Sit",
       "Z-position Switches → Z-position Side Roll",
       "Prone to Get-Up Bridge (Hip Opener Sequence)",
 
-      // GFM Shoulders
       "Egyptian Arms (Seated → Pike → Prone)",
       "S-Movement (Seated → Pike → Prone)",
       "Figure 8 in 6pt → Transition to 4pt",
       "Crawl to Crab → Pike to Tabletop",
 
-      // GFM Ankles
       "Ankle Series (Up/Down, In/Out, Rotations)",
       "Figure 8 with Toes and Ankle",
       "Snail Crawl → Frog → Crab Flow",
 
-      // GFM Spine & Neck
       "Supine Neck Rolls + Segmental Spine Rolls",
       "Hand-on-Knee Rolls + Forward/Backward Rolling",
 
-      // GFM Wrists
       "Finger Waves → Hand Circles → Tea Pot (Wrist Flow)",
 
-      // Flow Transitions / Extensions
       "4pt Crawl → Push-Up → Pike → Squat → Crab",
       "Shoulder Mobility Drill → Prone S Transition → 4pt Crawl",
       "Half Heel Sit → Roll to Supine → Segmental Roll to Prone",
       "6pt X-Lift → Prone Rotation → Crab Reach with Control",
 
-      // Safe Animal Flow inspired moves
       "Static Beast Hold → Dynamic Beast Crawl",
       "Crab Reach (slow, controlled)",
       "Underswitch from Beast to Crab",
@@ -997,7 +1092,7 @@
     function chooseGFMFlow(){
       const src = MOBILITY_DB_GENERAL.slice();
       for (let i = src.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [src[i], src[j]] = [src[j], src[i]]; }
-      const pickCount = 7; // ~15–20 min
+      const pickCount = 7;
       const steps = src.slice(0, pickCount);
       const lines = ["GFM Flow (~15–20 min):", "", ...steps.map((s, i) => `${i + 1}) ${s}`)];
       return { main: lines, meta: { modality: "recovery", date: new Date().toISOString(), choice: "GFM Flow" } };
@@ -1072,7 +1167,6 @@
         </div>
       );
     }
-
     /* =================== App =================== */
     function App(){
       const [modality,setModality]=useState(lsGet("modality","kettlebell"));
@@ -1514,7 +1608,6 @@
               />
               <button onClick={openWarmup} className="btn bg-emerald-700">Warm-up</button>
 
-              {/* Inferno Ready button shows only when due; never forced */}
               {infernoAuto!=="off" && infernoDueNow && (
                 <button
                   className="btn bg-indigo-600"
@@ -1646,7 +1739,6 @@
             </div>
           </Accordion>
 
-          {/* Simple chooser dialog */}
           <dialog id="addRecoveryDlg" className="rounded-xl p-0 w-80 bg-white dark:bg-gray-900 border border-black/10 dark:border-white/10">
             <div className="p-3 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
               <span className="font-semibold">Add Recovery</span>
@@ -1695,7 +1787,6 @@
               </button>
             </div>
 
-            {/* Enabled modalities */}
             <div className="border-t border-black/10 dark:border-white/10 pt-3">
               <p className="text-sm font-medium mb-2">Enabled modalities</p>
               <div className="space-y-2">
@@ -1723,7 +1814,6 @@
               </p>
             </div>
 
-            {/* Optional finishers */}
             <div className="border-t border-black/10 dark:border-white/10 pt-3">
               <p className="text-sm font-medium mb-2">Optional finishers</p>
               <label className="flex items-center justify-between">
@@ -1736,7 +1826,6 @@
               </label>
             </div>
 
-            {/* Inferno scheduling settings */}
             <div className="border-t border-black/10 dark:border-white/10 pt-3">
               <p className="text-sm font-medium mb-2">Inferno Suggestion</p>
               <select
@@ -1765,7 +1854,6 @@
               </p>
             </div>
 
-            {/* Default modality quick choose */}
             <div className="border-t border-black/10 dark:border-white/10 pt-3">
               <p className="text-xs text-gray-500 dark:text-gray-400">Default Modality</p>
               <div className="mt-1">
@@ -1798,7 +1886,6 @@
         return PageTrain;
       }
 
-      // Gate mode landing (Daily Recovery Check vóór training) — with 0–5 scales
       if (recoveryMode==="gate" && route==="gate") {
         return (
           <div className="mx-auto w-full max-w-md md:max-w-2xl min-h-screen flex items-start pt-4">
