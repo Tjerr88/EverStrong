@@ -431,63 +431,126 @@
     });
 
     /* ============== Inferno (HIIT) ============== */
-    (function(){
-      const db = {
-        squat: [
-          { name:"Goblet Squat", stim:1.3, uni:false },
-          { name:"Bulgarian Split Squat", stim:1.5, uni:true },
-          { name:"Cossack", stim:1.5, uni:true }
-        ],
-        hinge: [
-          { name:"Two-arm Swing", stim:1.1, uni:false },
-          { name:"One-arm Swing", stim:1.2, uni:true },
-          { name:"Deadlift (KB)", stim:0.9, uni:false }
-        ],
-        push: [
-          { name:"Floor Press", stim:1.2, uni:true },
-          { name:"Military Press", stim:1.6, uni:true },
-          { name:"Push Press", stim:1.3, uni:true }
-        ],
-        pull: [
-          { name:"Bent-over Row", stim:1.4, uni:true },
-          { name:"High Pull", stim:1.4, uni:true },
-          { name:"Clean", stim:1.4, uni:true }
-        ],
-        core: [
-          { name:"Russian Twist", stim:0.7, uni:false },
-          { name:"Turkish Get-up", stim:3.5, uni:true },
-          { name:"Windmill", stim:1.8, uni:true }
-        ],
-        hybrid: [
-          { name:"Clean & Press", stim:2.0, uni:true },
-          { name:"Clean → Press → Squat", stim:2.5, uni:true },
-          { name:"Snatch & Press", stim:2.0, uni:true }
-        ]
-      };
-      function r(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-      function pick(a){ return a[Math.floor(Math.random()*(a.length))]; }
-      function shuffle(a){ const x=a.slice(); for(let i=x.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [x[i],x[j]]=[x[j],x[i]]; } return x; }
-      function fmt(ex, su){ const reps = Math.round(su / ex.stim); return `${ex.name} — ${ex.uni?`${reps} reps (${Math.ceil(reps/2)} per arm)`:`${reps} reps`} (${su} SU)`; }
-      function build(targetSU){
-        const pats=Object.keys(db);
-        const maxPer=2; let cur=0; const used=Object.fromEntries(pats.map(p=>[p,0])); const out=[];
-        for(const p of pats){
-          const ex=pick(db[p]); const su=r(30,70); cur+=su; used[p]+=1; out.push(fmt(ex,su));
-        }
-        let guard=0;
-        while(cur<targetSU-30 && guard<1000){
-          guard++; const p=pick(pats); if(used[p]>=maxPer) continue;
-          const ex=pick(db[p]); const su=r(30,70); if(cur+su>targetSU+10) break;
-          cur+=su; used[p]+=1; out.push(fmt(ex,su));
-        }
-        return shuffle(out);
-      }
-      window.HELLFIRE_GENERATE = function(target){
-        const allowed=[300,400,500];
-        if(allowed.indexOf(target)===-1){ target = allowed.reduce((b,c)=>Math.abs(c-target)<Math.abs(b-target)?c:b,allowed[0]); }
-        return { lines: build(target), su: target };
-      };
-    })();
+(function(){
+  // 8 patronen, 6 oefeningen elk — KB + BW only
+  // SU ~ relatieve stimulus; generator kiest 30–70 SU per item en rekent reps = SU / stim
+  const db = {
+    squat: [
+      { name:"Jump Squat (BW)",             stim:1.0, uni:false },
+      { name:"Split Squat Jump (BW)",       stim:1.2, uni:false },
+      { name:"Cossack Squat (KB)",          stim:1.4, uni:false },
+      { name:"Goblet Thruster (KB)",        stim:1.6, uni:false },
+      { name:"Drop Squat (BW plyo)",        stim:1.0, uni:false },
+      { name:"KB Speed Squat (light)",      stim:1.4, uni:false }
+    ],
+    hinge: [
+      { name:"One-arm Swing (KB)",          stim:1.2, uni:true  },
+      { name:"Hand-to-Hand Swing (KB)",     stim:1.3, uni:true  },
+      { name:"Broad Jump (BW)",             stim:1.0, uni:false },
+      { name:"High Pull (KB)",              stim:1.4, uni:true  },
+      { name:"Hip Snap (short swing, KB)",  stim:0.9, uni:false },
+      { name:"Deadlift Jump (light KB)",    stim:1.1, uni:false }
+    ],
+    push: [
+      { name:"Plyo Push-up (BW)",           stim:1.2, uni:false },
+      { name:"Push Press (KB)",             stim:1.6, uni:true  },
+      { name:"Push Jerk (KB)",              stim:1.8, uni:true  },
+      { name:"Clap Push-up (BW)",           stim:1.3, uni:false },
+      { name:"Incline Explosive Push-up",   stim:1.0, uni:false },
+      { name:"KB Speed Strict Press",       stim:1.4, uni:true  }
+    ],
+    pull: [
+      { name:"KB High Pull",                stim:1.4, uni:true  },
+      { name:"Explosive Row (KB)",          stim:1.3, uni:true  },
+      { name:"Jumping Pull-up (BW)",        stim:1.5, uni:false },
+      { name:"Hand-to-Hand Clean (KB)",     stim:1.6, uni:true  },
+      { name:"TRX Row Jump (BW)",           stim:1.2, uni:false },
+      { name:"One-arm Row → Hip Snap (KB)", stim:1.4, uni:true  }
+    ],
+    lunge: [ // dynamisch: stappen/heen&terug/lopend
+      { name:"Walking Lunge (KB/BW)",       stim:1.5, uni:true  },
+      { name:"Step-back Lunge Hop (BW)",    stim:1.1, uni:true  },
+      { name:"Side Lunge Step (KB/BW)",     stim:1.3, uni:true  },
+      { name:"Curtsy Lunge Step (BW)",      stim:1.4, uni:true  },
+      { name:"Skater Lunge (BW hop)",       stim:1.2, uni:true  },
+      { name:"Forward↔Reverse Lunge Combo", stim:1.5, uni:true  }
+    ],
+    rotation: [
+      { name:"Rotational Swing (KB)",       stim:1.6, uni:true  },
+      { name:"Rotational Clean (KB)",       stim:1.8, uni:true  },
+      { name:"Russian Twist (KB)",          stim:0.8, uni:false },
+      { name:"Figure 8 (KB, hand-to-hand)", stim:1.3, uni:true  },
+      { name:"Standing Rotational Press",   stim:1.5, uni:true  },
+      { name:"Side Plank Reach Under (KB)", stim:1.3, uni:true  }
+    ],
+    antirotation: [
+      { name:"KB Pallof Press (front hold)",stim:0.9, uni:false },
+      { name:"Tall Kneel Anti-Rot Press",   stim:1.0, uni:false },
+      { name:"Plank with KB Drag",          stim:1.3, uni:true  },
+      { name:"Deadbug KB Hold",             stim:0.8, uni:false },
+      { name:"Side Plank Row (KB)",         stim:1.2, uni:true  },
+      { name:"Bear Crawl KB Drag",          stim:1.4, uni:true  }
+    ],
+    carry: [
+      { name:"Farmers Walk (2 KB)",         stim:1.8, uni:false },
+      { name:"Overhead Carry (1–2 KB)",     stim:2.0, uni:true  },
+      { name:"Rack Walk (2 KB)",            stim:1.6, uni:false },
+      { name:"Suitcase Carry Run (1 KB)",   stim:1.7, uni:true  },
+      { name:"Cross Carry (OH+suitcase)",   stim:2.2, uni:true  },
+      { name:"Bear Hug Carry (2 KB)",       stim:2.4, uni:false }
+    ]
+  };
+
+  // helpers (laat deze staan als je ooit het db wijzigt)
+  function r(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+  function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+  function shuffle(a){ const x=a.slice(); for(let i=x.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [x[i],x[j]]=[x[j],x[i]]; } return x; }
+  function fmt(ex, su){
+    const reps = Math.max(1, Math.round(su / ex.stim));
+    const perArm = ex.uni ? ` (${Math.ceil(reps/2)} per arm)` : "";
+    return `${ex.name} — ${reps} reps${perArm} (${su} SU)`;
+  }
+
+  function build(targetSU){
+    const pats = Object.keys(db);
+    const maxPerPat = 2; // nooit meer dan 2 oefeningen per patroon
+    let curSU = 0;
+    const used = Object.fromEntries(pats.map(p=>[p,0]));
+    const out = [];
+
+    // 1 ronde langs alle patronen voor breedte
+    for(const p of pats){
+      const ex = pick(db[p]);
+      const su = r(30,70);
+      curSU += su; used[p] += 1;
+      out.push(fmt(ex, su));
+    }
+
+    // daarna aanvullen tot target binnen marge
+    let guard = 0;
+    while(curSU < targetSU - 30 && guard < 1000){
+      guard++;
+      const p = pick(pats);
+      if(used[p] >= maxPerPat) continue;
+      const ex = pick(db[p]);
+      const su = r(30,70);
+      if(curSU + su > targetSU + 10) break;
+      curSU += su; used[p] += 1;
+      out.push(fmt(ex, su));
+    }
+
+    return shuffle(out);
+  }
+
+  // publieks-API
+  window.HELLFIRE_GENERATE = function(target){
+    const allowed = [300,400,500];
+    if(!allowed.includes(target)){
+      target = allowed.reduce((best, cur)=> Math.abs(cur-target)<Math.abs(best-target) ? cur : best, allowed[0]);
+    }
+    return { lines: build(target), su: target };
+  };
+})();
 
     /* ======= Rest/Breathing ======= */
     const REST_BREATHING_OPTIONS = [
@@ -495,6 +558,17 @@
       { level:"Intermediate", name:"Bottom Triangle 4-6-8", pattern:"Inhale 4s • Exhale 6s • Hold 8s (bottom)", note:"Practice 5–20 minutes." },
       { level:"Advanced", name:"Bottom Triangle 6-8-12", pattern:"Inhale 6s • Exhale 8s • Hold 12s (bottom)", note:"Practice 5–20 minutes." }
     ];
+/* ======= Breathing builder ======= */
+function buildBreathingSession(minutes=10, level="Beginner"){
+  const opt = REST_BREATHING_OPTIONS.find(o => o.level === level) || REST_BREATHING_OPTIONS[0];
+  const lines = [
+    `Breathing — ${opt.name} • ${minutes} min`,
+    "",
+    `Pattern: ${opt.pattern}`,
+    opt.note
+  ];
+  return { main: lines, meta: { modality: "breathing", minutes, level, date: new Date().toISOString() } };
+}
     /* ======= UI helpers: list renderer ======= */
     function renderSmartList(lines){
       const out=[]; let buffer=[];
@@ -1385,7 +1459,13 @@
         setSession(rec);
         setElapsed(0); setRunning(false);
       }
-
+function openBreathing(minutes=10, level="Beginner"){
+  const b = buildBreathingSession(minutes, level);
+  lsSet("current:breathing", b);
+  setSession(b);
+  setElapsed(0); 
+  setRunning(false);
+}
       const [testChecks, setTestChecks] = useState({});
       const [testPassed, setTestPassed] = useState(false);
 
@@ -1519,6 +1599,18 @@
           alert('Active Recovery saved to history.');
           return;
         }
+// Breathing: log
+if (metaMod === 'breathing') {
+  try{ localStorage.removeItem(currentKey('breathing')); }catch(e){}
+  const histKeySpecial = historyKey('breathing');
+  const arr = lsGet(histKeySpecial, []);
+  arr.push({ saved_at:new Date().toISOString(), timer_seconds:elapsed||0, main:session.main, meta:session.meta });
+  lsSet(histKeySpecial, arr);
+  setSession(null);
+  alert('Breathing saved to history.');
+  return;
+}
+
 
         // Strength: log
         saveToHistory(session, metaMod || modality);
@@ -1702,22 +1794,29 @@
             </Accordion>
           )}
 
-          <Accordion title="Active Recovery (choose one)" defaultOpen>
-            <div className="flex flex-col md:flex-row gap-2">
-              <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('resilient')}>Resilient</button>
-              <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('gfm')}>GFM Flow</button>
-              <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('zone2')}>Zone #2</button>
-            </div>
-          </Accordion>
+          {/* Auto-selected Recovery from gate */}
+{['recovery','breathing'].includes(session?.meta?.modality) && (
+  <CalmCard title="Pinned Recovery (auto-selected)" subtitle="From your daily recovery gate">
+    <SessionView session={session}/>
+    <div className="flex gap-2 mt-2">
+      <button onClick={completeSession} className="btn-sm bg-green-600 w-full">Complete</button>
+    </div>
+  </CalmCard>
+)}
 
-          {session?.meta?.modality==='recovery' && (
-            <CalmCard title="Pinned Recovery" subtitle="Pinned until Complete">
-              <SessionView session={session}/>
-              <div className="flex gap-2 mt-2">
-                <button onClick={completeSession} className="btn-sm bg-green-600 w-full">Complete</button>
-              </div>
-            </CalmCard>
-          )}
+{/* Manual extra options */}
+<Accordion title="Extra Recovery Options" defaultOpen>
+  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+    Use these if you want to add another recovery block, or override today’s auto-selected session.
+  </p>
+  <div className="flex flex-col md:flex-row gap-2">
+    <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('resilient')}>Resilient</button>
+    <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('gfm')}>GFM Flow</button>
+    <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('zone2')}>Zone #2</button>
+    <button className="btn bg-gray-700 w-full" onClick={()=>openBreathing(10,'Beginner')}>Breathing (10 min)</button>
+  </div>
+</Accordion>
+
 
           <Accordion title="Recovery History">
             <History modality="recovery" />
@@ -1904,16 +2003,41 @@
                 <p className="text-sm mt-1">Total: {totalRecovery||0} → <strong>{gateDecision.toUpperCase()}</strong></p>
 
                 <div className="flex flex-col md:flex-row gap-2 mt-3">
-                  <button className="btn bg-blue-600 w-full" onClick={()=>{
-                    lsSet("recovery:stamp", todayStr());
-                    lsSet("recovery:lastRoute", gateDecision);
-                    setRoute(gateDecision);
-                  }}>Continue</button>
-                  <button className="btn bg-gray-600 w-full" onClick={()=>{
-                    lsSet("recovery:stamp", todayStr());
-                    lsSet("recovery:lastRoute","train");
-                    setRoute("train");
-                  }}>Skip today</button>
+<button
+  className="btn bg-blue-600 w-full"
+  onClick={()=>{
+    lsSet("recovery:stamp", todayStr());
+    lsSet("recovery:lastRoute", gateDecision);
+    setRoute(gateDecision);
+
+    // === Auto-pin mapping ===
+    // 11–15 → train (niks pinnen)
+    // 9–10  → Zone #2
+    // 8     → Resilient
+    // ≤7    → Breathing (10 min)
+    if (gateDecision === "recovery") {
+      let rec = null;
+      if ((totalRecovery ?? 0) >= 9) {
+        rec = chooseZone2Only();
+      } else if ((totalRecovery ?? 0) === 8) {
+        rec = chooseResilient();
+      } else {
+        rec = buildBreathingSession(10, "Beginner");
+      }
+      const mod = rec.meta?.modality || "recovery";
+      lsSet(`current:${mod}`, rec);
+      setSession(rec);
+      setActiveTab("recovery");
+    } else if (gateDecision === "fullrest") {
+      const b = buildBreathingSession(10, "Beginner");
+      lsSet("current:breathing", b);
+      setSession(b);
+      setActiveTab("recovery");
+    }
+  }}
+>
+  Continue
+</button>
                 </div>
                 <p className="text-xs text-gray-400 mt-2">We remember your choice until midnight.</p>
               </div>
