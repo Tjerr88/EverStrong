@@ -1423,6 +1423,31 @@ function ExerciseCard({ line }) {
     function App(){
       const [modality,setModality]=useState(lsGet("modality","kettlebell"));
       useEffect(()=>lsSet("modality",modality),[modality]);
+useEffect(() => {
+  function handleStartInferno() {
+    // stap 1: wissel naar Train tab
+    setActiveTab('train');
+    lsSet('ui:tab','train');
+
+    // stap 2: na 1 “tick” Inferno pinnen
+    setTimeout(() => {
+      try {
+        openHiitChooser(); // normale weg
+      } catch (e) {
+        if (typeof pinInferno === 'function') pinInferno(400); // fallback
+      }
+    }, 0);
+  }
+
+  // luister naar event vanuit Settings
+  window.addEventListener('everstrong:start-inferno', handleStartInferno);
+
+  // netjes opruimen
+  return () => {
+    window.removeEventListener('everstrong:start-inferno', handleStartInferno);
+  };
+}, []);
+
 
       const [session,setSession]=useState(null);
       const [elapsed,setElapsed]=useState(0);
@@ -1592,15 +1617,16 @@ function ExerciseCard({ line }) {
         setSession(next);
       }
 
-      function pinInferno(target=400){
-        if(!window.HELLFIRE_GENERATE){ alert("Inferno engine unavailable"); return; }
-        const out = window.HELLFIRE_GENERATE(target);
-        const hiitSession = { main: out.lines, meta: { modality:'hiit', su: out.su||target, date: new Date().toISOString() } };
-        lsSet(currentKey('hiit'), hiitSession);
-        setModality('hiit');
-        setSession(hiitSession);
-        setElapsed(0); setRunning(false);
-      }
+function pinInferno(target=400){
+  if(!window.HELLFIRE_GENERATE){ alert("Inferno engine unavailable"); return; }
+  const out = window.HELLFIRE_GENERATE(target);
+  const hiitSession = { main: out.lines, meta: { modality:'hiit', su: out.su||target, date: new Date().toISOString() } };
+  lsSet(currentKey('hiit'), hiitSession);
+  // setModality('hiit');  // weg
+  setSession(hiitSession);
+  setElapsed(0); setRunning(false);
+}
+
       function openHiitChooser(){ pinInferno(400); }
 
       function openWarmup(){
@@ -1900,9 +1926,29 @@ if (metaMod === 'breathing') {
               <div className="flex flex-col gap-2">
                 <button onClick={generateCycle} className="btn bg-blue-600 w-full">Generate Cycle (start at 1.1.1)</button>
                 <div className="flex gap-2">
-                  <button onClick={openWarmup} className="btn bg-emerald-700 w-full">Warm-up</button>
-                  <button onClick={openHiitChooser} className="btn bg-indigo-600 w-full">Inferno HIIT</button>
-                </div>
+  <button onClick={openWarmup} className="btn bg-emerald-700 w-full">Warm-up</button>
+<button
+  onClick={() => {
+    // eerst naar Train-tab
+    setActiveTab('train');
+    lsSet('ui:tab','train');
+
+    // daarna Inferno pinnen (400 SU)
+    setTimeout(() => {
+      try {
+        openHiitChooser(); // normale weg
+      } catch (e) {
+        if (typeof pinInferno === 'function') pinInferno(400); // fallback
+      }
+    }, 0);
+  }}
+  className="btn bg-indigo-600 w-full"
+  title="Start Inferno (400 SU) en ga naar Train"
+>
+  Start Inferno (400 SU)
+</button>
+
+</div>
               </div>
             </CalmCard>
           )}
@@ -2145,7 +2191,15 @@ if (metaMod === 'breathing') {
 
             <div className="flex gap-2">
               <button onClick={openWarmup} className="btn bg-emerald-700 w-full">Warm-up</button>
-              <button onClick={openHiitChooser} className="btn bg-indigo-600 w-full">Inferno HIIT</button>
+              <button
+  onClick={() => {
+    window.dispatchEvent(new Event('everstrong:start-inferno'));
+  }}
+  className="btn bg-indigo-600 w-full"
+>
+  Start Inferno (400 SU)
+</button>
+
             </div>
             <div>
               <button onClick={restartSelected} className="btn bg-amber-600 w-full">Restart Current Modality</button>
