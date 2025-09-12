@@ -96,83 +96,175 @@
 
     // --- Eénmalige seed van YouTube-links (non-destructief) ---
     const VIDEO_LINKS_SEED = {
-      // Kettlebell — SFG
-      "One-Legged Deadlift": "https://www.youtube.com/watch?v=wW57VmUxefg",
-      "Double Sumo Deadlift": "https://www.youtube.com/watch?v=ymDxI-3cgoI",
-      "Single Leg Glute Bridge": "https://www.youtube.com/shorts/dgJoc5mbNzA",
-      "One-arm Swing": "https://www.youtube.com/watch?v=UYBKrK1y6ww",
-      "(Side Stepping) Two-arm Swing": "https://www.youtube.com/watch?v=UwYcntzzUiU",
-      "Double Swing": "https://www.youtube.com/shorts/0f5oD464u1Q",
+  // Kettlebell — SFG
+  "One-Legged Deadlift": "https://www.youtube.com/watch?v=wW57VmUxefg",
+  "Double Sumo Deadlift": "https://www.youtube.com/watch?v=ymDxI-3cgoI",
+  "Single Leg Glute Bridge": "https://www.youtube.com/shorts/dgJoc5mbNzA",
+  "One-arm Swing": "https://www.youtube.com/watch?v=UYBKrK1y6ww",
+  "(Side Stepping) Two-arm Swing": "https://www.youtube.com/watch?v=UwYcntzzUiU",
+  "Double Swing": "https://www.youtube.com/shorts/0f5oD464u1Q",
 
-      "(3 Min) Get Up": "https://www.youtube.com/watch?v=sgd8n917Zv0",
-      "Supine to Sit Up": "https://www.youtube.com/watch?v=dv_nNf43Qck",
-      "Windmill": "https://www.youtube.com/shorts/EZWHnzAjctU",
-      "Bent Press": "https://www.youtube.com/watch?v=cFmSd61PPTI",
-      "Supine to Bridge": "https://www.youtube.com/watch?v=r_sJKLowdak",
-      "Supine to Half Kneel": "https://www.youtube.com/watch?v=r_sJKLowdak",
-      "Half Kneel to Stand": "https://www.youtube.com/watch?v=1XOHgBZlCpo",
+  "(3 Min) Get Up": "https://www.youtube.com/watch?v=sgd8n917Zv0",
+  "Supine to Sit Up": "https://www.youtube.com/watch?v=dv_nNf43Qck",
+  "Windmill": "https://www.youtube.com/shorts/EZWHnzAjctU",
+  "Bent Press": "https://www.youtube.com/watch?v=cFmSd61PPTI",
+  "Supine to Bridge": "https://www.youtube.com/watch?v=r_sJKLowdak",
+  "Supine to Half Kneel": "https://www.youtube.com/watch?v=r_sJKLowdak",
+  "Half Kneel to Stand": "https://www.youtube.com/watch?v=1XOHgBZlCpo",
 
-      "HS-Plank": "https://www.youtube.com/watch?v=w_KhpjMWVNM",
-      "Front Rack Carry": "https://www.youtube.com/watch?v=jumVlXfY1Pc",
-      "Single Dead Clean": "https://www.youtube.com/shorts/WFnnHBpvttE",
-      "Double Clean": "https://www.youtube.com/shorts/gEWRc6rWFkg",
-      "Pullover": "https://www.youtube.com/watch?v=1-3Ul1YgPOg",
-      "One-arm Row": "https://www.youtube.com/shorts/pvRXtyBkO-s",
+  "HS-Plank": "https://www.youtube.com/watch?v=w_KhpjMWVNM",
+  "Front Rack Carry": "https://www.youtube.com/watch?v=jumVlXfY1Pc",
+  "Single Dead Clean": "https://www.youtube.com/shorts/WFnnHBpvttE",
+  "Double Clean": "https://www.youtube.com/shorts/gEWRc6rWFkg",
+  "Pullover": "https://www.youtube.com/watch?v=1-3Ul1YgPOg",
+  "One-arm Row": "https://www.youtube.com/shorts/pvRXtyBkO-s",
 
-      "B-stance Goblet Squat": "https://www.youtube.com/shorts/QEZpCqjzHAA",
-      "Single Front Squat": "https://www.youtube.com/watch?v=SlPwjU6I9gk",
-      "Paused Front Squat": "https://www.youtube.com/shorts/B7v20H9NAmI",
-      "Double Front Squat": "https://www.youtube.com/shorts/l3TxmNX6C8s",
-      "Athletic Lunge": "https://www.youtube.com/shorts/nDFVS8Hg3xw",
-      "Bottom Up Squat": "https://www.youtube.com/shorts/d8jEluh8tFc",
+  "B-stance Goblet Squat": "https://www.youtube.com/shorts/QEZpCqjzHAA",
+  "Single Front Squat": "https://www.youtube.com/watch?v=SlPwjU6I9gk",
+  "Paused Front Squat": "https://www.youtube.com/shorts/B7v20H9NAmI",
+  "Double Front Squat": "https://www.youtube.com/shorts/l3TxmNX6C8s",
+  "Athletic Lunge": "https://www.youtube.com/shorts/nDFVS8Hg3xw",
+  "Bottom Up Squat": "https://www.youtube.com/shorts/d8jEluh8tFc",
 
-      "Military Press": "https://www.youtube.com/shorts/oYubnI4aXD8",
-      "Top Down Press": "https://www.youtube.com/shorts/ezAs5iMjy0A",
-      "Half Kneeling Press": "https://www.youtube.com/shorts/n0peUzKZ-PU",
-      "Floor Press": "https://www.youtube.com/shorts/1QMCUbRkQFA",
-      "Double Push Press": "https://www.youtube.com/watch?v=WwluL1MF0jA",
-      "Double Push Jerk": "https://www.youtube.com/shorts/FhzocaH1MFs",
+  "Military Press": "https://www.youtube.com/shorts/oYubnI4aXD8",
+  "Top Down Press": "https://www.youtube.com/shorts/ezAs5iMjy0A",
+  "Half Kneeling Press": "https://www.youtube.com/shorts/n0peUzKZ-PU",
+  "Floor Press": "https://www.youtube.com/shorts/1QMCUbRkQFA",
+  "Double Push Press": "https://www.youtube.com/watch?v=WwluL1MF0jA",
+  "Double Push Jerk": "https://www.youtube.com/shorts/FhzocaH1MFs",
 
-      "Overhead Carry": "https://www.youtube.com/watch?v=54POVWkWjEs",
-      "Snatch": "https://www.youtube.com/watch?v=QsuJ6973OFc",
-      "Low Pull Snatch": "https://www.youtube.com/shorts/GK8i2xYGaOM",
-      "High Pull": "https://www.youtube.com/watch?v=mP1BHxBeAEM",
-      "Front/Side Raise Snatch": "https://www.youtube.com/shorts/7uPCrlXxW8s",
-      "Double Snatch": "https://www.youtube.com/shorts/3Y73hcmzSN0",
+  "Overhead Carry": "https://www.youtube.com/watch?v=54POVWkWjEs",
+  "Snatch": "https://www.youtube.com/watch?v=QsuJ6973OFc",
+  "Low Pull Snatch": "https://www.youtube.com/shorts/GK8i2xYGaOM",
+  "High Pull": "https://www.youtube.com/watch?v=mP1BHxBeAEM",
+  "Front/Side Raise Snatch": "https://www.youtube.com/shorts/7uPCrlXxW8s",
+  "Double Snatch": "https://www.youtube.com/shorts/3Y73hcmzSN0",
 
-      "Double Clean & Press": "https://www.youtube.com/shorts/S6o26rzFPEs",
-      "Double Clean & Front Squat": "https://www.youtube.com/watch?v=t7vqdHxMVGY",
-      "Double Snatch & Overhead Walk": "https://www.youtube.com/shorts/O_jKGm7UjWE",
-      "Double Clean & Jerk": "https://www.youtube.com/shorts/tonuNZZTPlA",
-      "Double Snatch & Press": "https://www.youtube.com/watch?v=bsJpa1Bhe84",
-      "Double Front Squat & Push Press": "https://www.youtube.com/shorts/HsAwg5kCORg",
+  "Double Clean & Press": "https://www.youtube.com/shorts/S6o26rzFPEs",
+  "Double Clean & Front Squat": "https://www.youtube.com/watch?v=t7vqdHxMVGY",
+  "Double Snatch & Overhead Walk": "https://www.youtube.com/shorts/O_jKGm7UjWE",
+  "Double Clean & Jerk": "https://www.youtube.com/shorts/tonuNZZTPlA",
+  "Double Snatch & Press": "https://www.youtube.com/watch?v=bsJpa1Bhe84",
+  "Double Front Squat & Push Press": "https://www.youtube.com/shorts/HsAwg5kCORg",
 
-      // Barbell — SFL
-      "Back Squat": "https://www.youtube.com/watch?v=-bJIpOq-LWk",
-      "Front Squat": "https://www.youtube.com/watch?v=HHxNbhP16UE",
-      "Zercher Squat": "https://www.youtube.com/shorts/3F9ZohTI-lg",
+  // Barbell — SFL
+  "Back Squat": "https://www.youtube.com/watch?v=-bJIpOq-LWk",
+  "Front Squat": "https://www.youtube.com/watch?v=HHxNbhP16UE",
+  "Zercher Squat": "https://www.youtube.com/shorts/3F9ZohTI-lg",
 
-      "Bench Press": "https://www.youtube.com/shorts/hWbUlkb5Ms4",
-      "Incline Bench Press": "https://www.youtube.com/watch?v=lJ2o89kcnxY",
-      "Shoulder Press": "https://www.youtube.com/watch?v=G2qpTG1Eh40",
+  "Bench Press": "https://www.youtube.com/shorts/hWbUlkb5Ms4",
+  "Incline Bench Press": "https://www.youtube.com/watch?v=lJ2o89kcnxY",
+  "Shoulder Press": "https://www.youtube.com/watch?v=G2qpTG1Eh40",
 
-      "Conventional Deadlift": "https://www.youtube.com/shorts/ZaTM37cfiDs",
-      "Goodmorning": "https://www.youtube.com/shorts/7cpldMZjLOs",
-      "Sumo Deadlift": "https://www.youtube.com/watch?v=pfSMst14EFk",
+  "Conventional Deadlift": "https://www.youtube.com/shorts/ZaTM37cfiDs",
+  "Goodmorning": "https://www.youtube.com/shorts/7cpldMZjLOs",
+  "Sumo Deadlift": "https://www.youtube.com/watch?v=pfSMst14EFk",
 
-      // Bodyweight — SFB
-      "Box Pistol": "https://www.youtube.com/watch?v=ctffzu0jWu0",
-      "Top Down Pistol": "https://www.youtube.com/shorts/D5Iib9ZEkk8",
-      "Full Pistol": "https://www.youtube.com/shorts/AF3rz1fOIFk",
+  // Bodyweight — SFB
+  "Box Pistol": "https://www.youtube.com/watch?v=ctffzu0jWu0",
+  "Top Down Pistol": "https://www.youtube.com/shorts/D5Iib9ZEkk8",
+  "Full Pistol": "https://www.youtube.com/shorts/AF3rz1fOIFk",
 
-      "One-arm One-leg Push Up": "https://www.youtube.com/shorts/wnggEdKfySU",
-      "Wall HSPU (assist)": "https://www.youtube.com/watch?v=0wDEO6shVjc",
-      "Dips": "https://www.youtube.com/watch?v=Vt0lO4jpIDo",
+  "One-arm One-leg Push Up": "https://www.youtube.com/shorts/wnggEdKfySU",
+  "Wall HSPU (assist)": "https://www.youtube.com/watch?v=0wDEO6shVjc",
+  "Dips": "https://www.youtube.com/watch?v=Vt0lO4jpIDo",
 
-      "Tactical Pull Up": "https://www.youtube.com/watch?v=AcI6bGetbBU",
-      "Hanging Leg Raise": "https://www.youtube.com/watch?v=7FwGZ8qY5OU",
-      "Front Lever (prog)": "https://www.youtube.com/shorts/pDSQrioCAP0"
-    };
+  "Tactical Pull Up": "https://www.youtube.com/watch?v=AcI6bGetbBU",
+  "Hanging Leg Raise": "https://www.youtube.com/watch?v=7FwGZ8qY5OU",
+  "Front Lever (prog)": "https://www.youtube.com/shorts/pDSQrioCAP0",
+
+  // === Inferno (HIIT) – Squat (statisch) ===
+  "Jump Squat (BW)": "https://www.youtube.com/shorts/0Gccogfw9-8",
+  "Split Squat Jump (BW)": "https://www.youtube.com/watch?v=cIkkHg8YZQU",
+  "Cossack Squat (KB)": "https://www.youtube.com/shorts/XvJ8gtW30ZA",
+  "Goblet Thruster (KB)": "https://www.youtube.com/shorts/xCWW75WMGQc",
+  "Box Jump (BW)": "https://www.youtube.com/shorts/7EfeTsHZ5vkx",
+  "Box step Over (KB)": "https://www.youtube.com/watch?v=nemACX62EVY",
+
+  // === Inferno (HIIT) – Hinge ===
+  "One-arm Swing (KB)": "https://www.youtube.com/shorts/HX6f7I0IpCI",
+  "Hand-to-Hand Swing (KB)": "https://www.youtube.com/shorts/menvc5lfMfg",
+  "Broad Jump (BW)": "https://www.youtube.com/shorts/v0yrBWA3eEs",
+  "Two-arm Swing (KB)": "https://www.youtube.com/watch?v=LDfiVzjGjAg",
+  "Snatch (KB)": "https://www.youtube.com/watch?v=QsuJ6973OFc",
+  "Deadlift Jump (KB)": "https://www.youtube.com/watch?v=ZL-lrmnIXY4",
+
+  // === Inferno (HIIT) – Push ===
+  "Plyo Push-up (BW)": "https://www.youtube.com/watch?v=hDP-oskzYUs",
+  "Push Press (KB)": "https://www.youtube.com/watch?v=CCqru4q9RK0",
+  "Push Jerk (KB)": "https://www.youtube.com/watch?v=SQ4fdVPMIng",
+  "Clean & Push Press (BW)": "https://www.youtube.com/shorts/TjWVpKqS990",
+  "Dips (BW)": "https://www.youtube.com/shorts/SXBksC78v8M",
+  "Viking Push Press (KB)": "https://www.youtube.com/watch?v=p-RKLmZmlqw",
+
+  // === Inferno (HIIT) – Pull ===
+  "High Pull (KB)": "https://www.youtube.com/watch?v=mP1BHxBeAEM",
+  "Explosive Row (KB)": "https://www.youtube.com/watch?v=JlOhApM2aFw",
+  "Jumping Pull-up (BW)": "https://www.youtube.com/shorts/BLX0O9t51oQ",
+  "Hand-to-Hand Clean (KB)": "https://www.youtube.com/watch?v=herht-TIRxo",
+  "Inverted Row (BW)": "https://www.youtube.com/watch?v=sUTGBQ5NQ-s",
+  "Low Pull Snatch (KB)": "https://www.youtube.com/shorts/GK8i2xYGaOM",
+
+  // === Inferno (HIIT) – Lunge (dynamisch) ===
+  "Walking Lunge (KB/BW)": "https://www.youtube.com/watch?v=tQNktxPkSeE",
+  "Step-back Lunge Hop (BW)": "https://www.youtube.com/shorts/-nok_WaMB_A",
+  "Side Lunge Step (KB/BW)": "https://www.youtube.com/shorts/TnOkq6KfHsM",
+  "Curtsy Lunge Step (BW)": "https://www.youtube.com/shorts/hr3J9iyP_K0",
+  "Skater Lunge (BW)": "https://www.youtube.com/shorts/IkGOdk2VDJw",
+  "Forward↔Reverse Lunge Combo": "https://www.youtube.com/shorts/HDfT6w6IUdo",
+
+  // === Inferno (HIIT) – Rotation ===
+  "Rotational Swing (KB)": "https://www.youtube.com/shorts/gxmlcxiSpTA",
+  "Rotational Clean (KB)": "https://www.youtube.com/watch?v=B4jpuREQ5oo",
+  "Russian Twist (KB)": "https://www.youtube.com/watch?v=Tau0hsW8iR0",
+  "Figure 8 (KB, hand-to-hand)": "https://www.youtube.com/shorts/7g2v3b3TWKg",
+  "Half Kneeling Lift (KB)": "https://www.youtube.com/shorts/kA-aBmPHZqQ",
+  "Side Plank Reach Under (BW)": "https://www.youtube.com/watch?v=-ruAdV34H54",
+
+  // === Inferno (HIIT) – Anti-rotation ===
+  "Tall kneeling Halo (KB)": "https://www.youtube.com/shorts/2-grmRN2SbA",
+  "Renegade Row (KB)": "http://youtube.com/watch?v=7l03NoMzGp4",
+  "Plank with KB Drag": "https://www.youtube.com/shorts/59fmvrZ64ro",
+  "Deadbug KB Hold": "https://www.youtube.com/watch?v=pXcG0IH2Nkg",
+  "Side Plank Snatch (KB)": "https://www.youtube.com/watch?v=X33h4J-NKLA",
+  "Bear Crawl KB Drag": "https://www.youtube.com/shorts/3zO3nweBayQ",
+
+  // === Inferno (HIIT) – Loaded Carry ===
+  "Farmers Walk (2 KB)": "https://www.youtube.com/watch?v=8OtwXwrJizk",
+  "Overhead Carry (1–2 KB)": "https://www.youtube.com/watch?v=54POVWkWjEs",
+  "Rack Walk (2 KB)": "https://www.youtube.com/shorts/MatPOjMpCK4",
+  "Side Bend (1 KB)": "https://www.youtube.com/shorts/Rl_MsU1yI44",
+  "Cross Carry (OH + suitcase)": "https://www.youtube.com/watch?v=bqBvsheL9AM",
+  "Bear Crawl (BW)": "https://www.youtube.com/watch?v=4d52Y9W2M0g",
+
+  // ♻️ Resilient drills
+  "Hack Squat": "https://www.youtube.com/watch?v=-5uDm0_SkkQ",
+  "Jefferson Curl": "https://www.youtube.com/watch?v=nM747P0_OwM",
+  "Hockey Deadlift": "https://www.youtube.com/watch?v=zdzF5jjs_Q4",
+  "Bretzell (Stretch)": "https://www.youtube.com/watch?v=9f9DaOINp-Q",
+  "Bretzel Armbar": "https://www.youtube.com/watch?v=8ZqcKhDR_qE",
+  "Arm Bar": "https://www.youtube.com/watch?v=k7qyA5bMYRA",
+  "Bent Arm Bar + Press": "https://www.youtube.com/watch?v=SSi_DhIBpaE",
+  "Get Up Arm Rotations": "https://www.youtube.com/watch?v=TibXK8FmDj4",
+  "Get Up Neck Rotations": "https://www.youtube.com/watch?v=L4vYLrfFE2o",
+  "SOS Get Up": "https://www.youtube.com/watch?v=jfS4zZQDpWk",
+
+  "Front Lever (tuck)": "https://www.youtube.com/shorts/km9werLyeEc",
+  "Skin the Cat": "https://www.youtube.com/watch?v=QHnpUcVwZOk",
+  "Active Hang": "https://www.youtube.com/shorts/ovh75ysyV9w",
+  "Passive Hang": "https://www.youtube.com/shorts/9eY15prKcUY",
+  "Arm & Leg Movement": "https://www.youtube.com/shorts/GO78ov4HWP4",
+
+  "Bridge Hold": "https://www.youtube.com/watch?v=tSvmWU-0Zo0",
+  "Hip Flexor Stretch Overhead Kettlebell": "https://www.youtube.com/shorts/N6tXS3W5CcY",
+
+  // Neck Series (alles in één)
+  "Neck Series": "https://www.youtube.com/watch?v=TZXsOQl8CqA",
+
+  // GFM Flow (overall video)
+  "GFM Flow": "https://www.youtube.com/watch?v=LPOaWhj_0c8"
+};
+
     (function seedVideoLinksOnce(){
       const cur = getVideoLinks();
       let changed = false;
@@ -435,71 +527,87 @@
   // 8 patronen, 6 oefeningen elk — KB + BW only
   // SU ~ relatieve stimulus; generator kiest 30–70 SU per item en rekent reps = SU / stim
   const db = {
-    squat: [
-      { name:"Jump Squat (BW)",             stim:1.0, uni:false },
-      { name:"Split Squat Jump (BW)",       stim:1.2, uni:false },
-      { name:"Cossack Squat (KB)",          stim:1.4, uni:false },
-      { name:"Goblet Thruster (KB)",        stim:1.6, uni:false },
-      { name:"Drop Squat (BW plyo)",        stim:1.0, uni:false },
-      { name:"KB Speed Squat (light)",      stim:1.4, uni:false }
-    ],
-    hinge: [
-      { name:"One-arm Swing (KB)",          stim:1.2, uni:true  },
-      { name:"Hand-to-Hand Swing (KB)",     stim:1.3, uni:true  },
-      { name:"Broad Jump (BW)",             stim:1.0, uni:false },
-      { name:"High Pull (KB)",              stim:1.4, uni:true  },
-      { name:"Hip Snap (short swing, KB)",  stim:0.9, uni:false },
-      { name:"Deadlift Jump (light KB)",    stim:1.1, uni:false }
-    ],
-    push: [
-      { name:"Plyo Push-up (BW)",           stim:1.2, uni:false },
-      { name:"Push Press (KB)",             stim:1.6, uni:true  },
-      { name:"Push Jerk (KB)",              stim:1.8, uni:true  },
-      { name:"Clap Push-up (BW)",           stim:1.3, uni:false },
-      { name:"Incline Explosive Push-up",   stim:1.0, uni:false },
-      { name:"KB Speed Strict Press",       stim:1.4, uni:true  }
-    ],
-    pull: [
-      { name:"KB High Pull",                stim:1.4, uni:true  },
-      { name:"Explosive Row (KB)",          stim:1.3, uni:true  },
-      { name:"Jumping Pull-up (BW)",        stim:1.5, uni:false },
-      { name:"Hand-to-Hand Clean (KB)",     stim:1.6, uni:true  },
-      { name:"TRX Row Jump (BW)",           stim:1.2, uni:false },
-      { name:"One-arm Row → Hip Snap (KB)", stim:1.4, uni:true  }
-    ],
-    lunge: [ // dynamisch: stappen/heen&terug/lopend
-      { name:"Walking Lunge (KB/BW)",       stim:1.5, uni:true  },
-      { name:"Step-back Lunge Hop (BW)",    stim:1.1, uni:true  },
-      { name:"Side Lunge Step (KB/BW)",     stim:1.3, uni:true  },
-      { name:"Curtsy Lunge Step (BW)",      stim:1.4, uni:true  },
-      { name:"Skater Lunge (BW hop)",       stim:1.2, uni:true  },
-      { name:"Forward↔Reverse Lunge Combo", stim:1.5, uni:true  }
-    ],
-    rotation: [
-      { name:"Rotational Swing (KB)",       stim:1.6, uni:true  },
-      { name:"Rotational Clean (KB)",       stim:1.8, uni:true  },
-      { name:"Russian Twist (KB)",          stim:0.8, uni:false },
-      { name:"Figure 8 (KB, hand-to-hand)", stim:1.3, uni:true  },
-      { name:"Standing Rotational Press",   stim:1.5, uni:true  },
-      { name:"Side Plank Reach Under (KB)", stim:1.3, uni:true  }
-    ],
-    antirotation: [
-      { name:"KB Pallof Press (front hold)",stim:0.9, uni:false },
-      { name:"Tall Kneel Anti-Rot Press",   stim:1.0, uni:false },
-      { name:"Plank with KB Drag",          stim:1.3, uni:true  },
-      { name:"Deadbug KB Hold",             stim:0.8, uni:false },
-      { name:"Side Plank Row (KB)",         stim:1.2, uni:true  },
-      { name:"Bear Crawl KB Drag",          stim:1.4, uni:true  }
-    ],
-    carry: [
-      { name:"Farmers Walk (2 KB)",         stim:1.8, uni:false },
-      { name:"Overhead Carry (1–2 KB)",     stim:2.0, uni:true  },
-      { name:"Rack Walk (2 KB)",            stim:1.6, uni:false },
-      { name:"Suitcase Carry Run (1 KB)",   stim:1.7, uni:true  },
-      { name:"Cross Carry (OH+suitcase)",   stim:2.2, uni:true  },
-      { name:"Bear Hug Carry (2 KB)",       stim:2.4, uni:false }
-    ]
-  };
+  // === Squat (statisch / op de plek) ===
+  squat: [
+    { name:"Jump Squat (BW)",             stim:1.2, uni:false },
+    { name:"Split Squat Jump (BW)",       stim:1.3, uni:false },
+    { name:"Cossack Squat (KB)",          stim:1.4, uni:false },
+    { name:"Goblet Thruster (KB)",        stim:1.6, uni:false },
+    { name:"Box Jump (BW)",               stim:1.5, uni:false },
+    { name:"Box Step Over (KB)",          stim:1.4, uni:false }
+  ],
+
+  // === Hinge ===
+  hinge: [
+    { name:"One-arm Swing (KB)",          stim:1.2, uni:true  },
+    { name:"Hand-to-Hand Swing (KB)",     stim:1.3, uni:true  },
+    { name:"Broad Jump (BW)",             stim:1.0, uni:false },
+    { name:"Two-arm Swing (KB)",          stim:1.1, uni:false },
+    { name:"Snatch (KB)",                 stim:1.7, uni:true  }, // 1-arm snatch
+    { name:"Deadlift Jump (KB)",          stim:1.1, uni:false }
+  ],
+
+  // === Push ===
+  push: [
+    { name:"Plyo Push-up (BW)",           stim:1.2, uni:false },
+    { name:"Push Press (KB)",             stim:1.6, uni:true  },
+    { name:"Push Jerk (KB)",              stim:1.8, uni:true  },
+    { name:"Clean & Push Press (BW)",     stim:1.2, uni:false },
+    { name:"Dips (BW)",                   stim:1.2, uni:false },
+    { name:"Viking Push Press (KB)",      stim:1.7, uni:true  }
+  ],
+
+  // === Pull ===
+  pull: [
+    { name:"High Pull (KB)",              stim:1.4, uni:true  },
+    { name:"Explosive Row (KB)",          stim:1.3, uni:true  },
+    { name:"Jumping Pull-up (BW)",        stim:1.5, uni:false },
+    { name:"Hand-to-Hand Clean (KB)",     stim:1.6, uni:true  },
+    { name:"Inverted Row (BW)",           stim:1.1, uni:false },
+    { name:"Low Pull Snatch (KB)",        stim:1.4, uni:true  }
+  ],
+
+  // === Lunge (dynamisch / stappen) ===
+  lunge: [
+    { name:"Walking Lunge (KB/BW)",       stim:1.5, uni:true  },
+    { name:"Step-back Lunge Hop (BW)",    stim:1.1, uni:true  },
+    { name:"Side Lunge Step (KB/BW)",     stim:1.3, uni:true  },
+    { name:"Curtsy Lunge Step (BW)",      stim:1.4, uni:true  },
+    { name:"Skater Lunge (BW hop)",       stim:1.2, uni:true  },
+    { name:"Forward↔Reverse Lunge Combo", stim:1.5, uni:true  }
+  ],
+
+  // === Rotation ===
+  rotation: [
+    { name:"Rotational Swing (KB)",       stim:1.6, uni:true  },
+    { name:"Rotational Clean (KB)",       stim:1.8, uni:true  },
+    { name:"Russian Twist (KB)",          stim:0.8, uni:false },
+    { name:"Figure 8 (KB, hand-to-hand)", stim:1.3, uni:true  },
+    { name:"Half Kneeling Lift (KB)",     stim:1.5, uni:true  },
+    { name:"Side Plank Reach Under (BW)", stim:1.2, uni:true  }
+  ],
+
+  // === Anti-rotation ===
+  antirotation: [
+    { name:"Tall kneeling Halo (KB)",     stim:1.0, uni:false },
+    { name:"Renegade Row (KB)",           stim:1.3, uni:true  },
+    { name:"Plank with KB Drag",          stim:1.3, uni:true  },
+    { name:"Deadbug KB Hold",             stim:0.8, uni:false },
+    { name:"Side Plank Snatch (KB)",      stim:1.6, uni:true  },
+    { name:"Bear Crawl KB Drag",          stim:1.4, uni:true  }
+  ],
+
+  // === Loaded Carry / bracing locomotion ===
+  carry: [
+    { name:"Farmers Walk (2 KB)",         stim:1.8, uni:false },
+    { name:"Overhead Carry (1–2 KB)",     stim:2.0, uni:true  },
+    { name:"Rack Walk (2 KB)",            stim:1.6, uni:false },
+    { name:"Side Bend (1 KB)",            stim:1.2, uni:true  },
+    { name:"Cross Carry (OH + suitcase)", stim:2.2, uni:true  },
+    { name:"Bear Crawl (BW)",             stim:1.1, uni:false }
+  ]
+};
+
 
   // helpers (laat deze staan als je ooit het db wijzigt)
   function r(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
@@ -725,13 +833,28 @@ function buildBreathingSession(minutes=10, level="Beginner"){
     }
 
     /* ======= Exercise Card (met klikbare YouTube-thumbnail) ======= */
-    function ExerciseCard({ line }) {
-      const m = String(line).match(/^(?:\*\s*)?(?:(?<pattern>[^:]+):\s*)?(?<name>[^—]+?)\s*—\s*(?<details>.+)$/);
-      if(!m) return <p className="">{line}</p>;
+function ExerciseCard({ line }) {
+  const raw = String(line);
+  let name = "", pattern = "", details = "";
 
-      const name = m.groups?.name?.trim() || "";
-      const pattern = m.groups?.pattern?.trim() || "";
-      const details = m.groups?.details?.trim() || "";
+  // Format met "—":  "Pattern: Naam — details" of "Naam — details"
+  if (raw.includes("—")) {
+    const [left, ...rest] = raw.split("—");
+    details = rest.join("—").trim();
+    const colon = left.split(":");
+    if (colon.length >= 2) {
+      pattern = colon[0].replace(/^\*\s*/,"").trim();
+      name = colon.slice(1).join(":").trim();
+    } else {
+      name = left.replace(/^\*\s*/,"").trim();
+    }
+  } else {
+    // Alleen naam (zoals "Hack Squat")
+    name = raw.replace(/^\*\s*/,"").trim();
+  }
+
+  if (!name) return <p className="">{line}</p>;
+
 
       const [open, setOpen] = React.useState(false);
       const [url, setUrl] = React.useState(getVideoLinks()[name] || "");
@@ -849,7 +972,7 @@ function buildBreathingSession(minutes=10, level="Beginner"){
       const isBreathing = m.modality==='breathing';
       const isWarmup = m.modality==='warmup';
       const isStrength = ['kettlebell','barbell','bodyweight'].includes(m.modality);
-      const allowExerciseCards = isHIIT || isStrength;
+      const allowExerciseCards = isHIIT || isStrength || isRecovery;
 
       const title = isHIIT
         ? `Inferno${m.su?` • ${m.su} SU`:''}${m.date ? ` • ${new Date(m.date).toLocaleDateString()}` : ''}`
@@ -866,23 +989,73 @@ function buildBreathingSession(minutes=10, level="Beginner"){
       return (
         <div>
           <h3 className="font-semibold mb-2 text-base">{title}</h3>
+{/* Quick demo button for overall Recovery choices (GFM Flow / Neck Series) */}
+{isRecovery && session?.meta?.choice && (() => {
+  const map = getVideoLinks();
+  const url = map[session.meta.choice];
+  return url ? (
+    <div className="mt-2">
+      <button
+        className="btn-sm bg-blue-600"
+        onClick={()=>window.open(url, "_blank", "noopener,noreferrer")}
+        title="Open demo video"
+      >
+        Follow Along Session — {session.meta.choice}
+      </button>
+    </div>
+  ) : null;
+})()}
+<div className="space-y-2">
+  {(() => {
+    let skipNext = false; // sla de volgende regel over als we gecombineerd hebben
 
-          <div className="space-y-2">
-            {lines.map((raw, idx) => {
-              const line = (raw==null) ? "" : String(raw).trim();
-              if(line==="") return <div key={"sp-"+idx} className="h-2" />;
+    return (session.main || []).map((raw, idx) => {
+      if (skipNext) { skipNext = false; return null; }
 
-              if(allowExerciseCards && line.includes("—")) {
-                return <ExerciseCard key={"ex-"+idx} line={line} />;
-              }
+      const line = (raw == null) ? "" : String(raw).trim();
+      if (line === "") return <div key={"sp-"+idx} className="h-2" />;
 
-              if(line.startsWith("* ")) {
-                return <ul key={"ul-"+idx} className="list-disc ml-6"><li>{line.slice(2)}</li></ul>;
-              }
+      // ---------- 1) Recovery: combineer alléén met pure doseregel ----------
+      // Voorbeeld dat WEL combineert: "Hack Squat" + "* 2×5–8"  -> "Hack Squat — 2×5–8"
+      // Voorbeeld dat NIET combineert: "Hanging Series" + "* Front Lever (tuck) — …"
+      if (!line.includes("—") && (isRecovery && allowExerciseCards)) {
+        const nextRaw = (session.main || [])[idx+1];
+        const next = nextRaw ? String(nextRaw).trim() : "";
+        const nextIsDose = /^\*\s*\d/.test(next); // bullet die met een cijfer begint
 
-              return <p key={"p-"+idx} className="font-medium mt-3">{line}</p>;
-            })}
-          </div>
+        if (nextIsDose) {
+          const combined = `${line} — ${next.replace(/^\*\s*/, "")}`;
+          skipNext = true; // volgende bullet overslaan
+          return <ExerciseCard key={"ex-"+idx} line={combined} />;
+        }
+      }
+
+      // ---------- 2) Bullets ----------
+      if (line.startsWith("* ")) {
+        const rest = line.slice(2).trim();
+
+        if (isRecovery && allowExerciseCards) {
+          // Bullets die een oefening + details bevatten (met '—') renderen we als kaart
+          // Voorbeeld: "* Bridge Hold — 2×10–20 sec"  -> kaart met video
+          if (rest.includes("—")) {
+            return <ExerciseCard key={"ex-"+idx} line={rest} />;
+          }
+        }
+
+        // Overige bullets blijven bullets
+        return <ul key={"ul-"+idx} className="list-disc ml-6"><li>{rest}</li></ul>;
+      }
+
+      // ---------- 3) Kaarten voor HIIT/Strength zoals voorheen; Recovery-kaarten als er '—' in staat ----------
+      if (allowExerciseCards && (line.includes("—") || (isRecovery && /\d/.test(line)))) {
+        return <ExerciseCard key={"ex-"+idx} line={line} />;
+      }
+
+      // ---------- 4) Default: paragraaf (kopjes/intro) ----------
+      return <p key={"p-"+idx} className="font-medium mt-3">{line}</p>;
+    });
+  })()}
+</div>
 
           <p className="text-xs text-gray-400 mt-2">Pinned until you press “Complete”.</p>
         </div>
@@ -1086,7 +1259,7 @@ function buildBreathingSession(minutes=10, level="Beginner"){
     /* ===== ACTIVE RECOVERY (3 opties + Resilient lijst) ===== */
     function chooseResilient(){
       const lines = [
-        "Resilient — quality over quantity; pain-free range. Guide: 2–3 sets • 3–5 reps or 10–30s holds.",
+        "Resilient — quality over quantity; pain-free range.",
         "",
         "Hack Squat",
         "* 2×5–8",
@@ -1168,7 +1341,12 @@ function buildBreathingSession(minutes=10, level="Beginner"){
       for (let i = src.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [src[i], src[j]] = [src[j], src[i]]; }
       const pickCount = 7;
       const steps = src.slice(0, pickCount);
-      const lines = ["GFM Flow (~15–20 min):", "", ...steps.map((s, i) => `${i + 1}) ${s}`)];
+      const lines = [
+  "GFM Flow (~15–20 min):",
+  "",
+  ...steps.map((s, i) => `${i + 1}) ${s} — 1–2 min`)
+];
+
       return { main: lines, meta: { modality: "recovery", date: new Date().toISOString(), choice: "GFM Flow" } };
     }
     function chooseZone2Only(){
