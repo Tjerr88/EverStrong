@@ -93,7 +93,17 @@
       const q = quality==='hq' ? 'hqdefault.jpg' : quality==='mq' ? 'mqdefault.jpg' : 'default.jpg';
       return `https://img.youtube.com/vi/${id}/${q}`;
     }
-
+// --- Last-Load helpers (per oefening) ---
+function getLastLoads(){ return lsGet('load:last', {}); }
+function saveLastLoad(name, data){
+  const map = getLastLoads();
+  map[name] = { ...(map[name]||{}), ...(data||{}) };
+  lsSet('load:last', map);
+}
+function getLastLoadFor(name){
+  const map = getLastLoads();
+  return map[name] || null; // bv. { load:"80 kg", rpe:"7", date:"2025-09-15T10:00:00Z" }
+}
     // --- Eénmalige seed van YouTube-links (non-destructief) ---
     const VIDEO_LINKS_SEED = {
   // Kettlebell — KETTLEBELLENGINE
@@ -938,6 +948,7 @@ function ExerciseCard({ line }) {
                   {!url && <p className="text-xs text-gray-500 dark:text-gray-400">Plak een YouTube-URL voor een klikbare thumbnail. Ondersteunt <code>watch?v=</code>, <code>youtu.be</code>, <code>shorts</code> en <code>embed</code>.</p>}
                 </div>
               </div>
+<LastLoadTracker name={name} open={open} />d
             </div>
           )}
         </section>
@@ -2336,38 +2347,102 @@ if (metaMod === 'breathing') {
         </div>
       );
     }
+function LastLoadTracker({ name, open }) {
+  const last = getLastLoadFor(name);
+  const [loadVal, setLoadVal] = React.useState(last?.load || "");
+  const [rpeVal, setRpeVal] = React.useState(last?.rpe || "");
 
-    function PerformanceForm({ session, onChange }){
-      const m = session?.meta || {};
-      const perf = m.performance || { load:"", rpe:"", notes:"" };
-      const isStrength = ["kettlebell","barbell","bodyweight"].includes(m.modality);
-      if(!isStrength) return null;
-      return (
-        <div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <div>
-              <label className="text-xs text-gray-400">Load</label>
-              <input className="w-full px-2 py-1 rounded bg-gray-800"
-                     value={perf.load}
-                     onChange={e=>onChange({...perf, load:e.target.value})}/>
-            </div>
-            <div>
-              <label className="text-xs text-gray-400">RPE (1–10)</label>
-              <input className="w-full px-2 py-1 rounded bg-gray-800"
-                     type="number" min="1" max="10"
-                     value={perf.rpe}
-                     onChange={e=>onChange({...perf, rpe:e.target.value})}/>
-            </div>
-            <div className="md:col-span-3">
-              <label className="text-xs text-gray-400">Notes</label>
-              <textarea className="w-full px-2 py-1 rounded bg-gray-800" rows="3"
-                        value={perf.notes}
-                        onChange={e=>onChange({...perf, notes:e.target.value})}/>
-            </div>
-          </div>
-        </div>
-      );
+  // Als je de kaart openklapt, vul met laatste data
+  React.useEffect(() => {
+    if (open) {
+      const fresh = getLastLoadFor(name);
+      setLoadVal(fresh?.load || "");
+      setRpeVal(fresh?.rpe || "");
     }
+  }, [open, name]);
+
+  return (
+    <div className="mt-2 p-2 rounded-lg border border-black/10 dark:border-white/10">
+      <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+        <span className="font-medium">Last set:</span>{" "}
+        {last
+          ? <>
+              {last.load ? `${last.load}` : "—"}
+              {last.rpe ? ` • RPE ${last.rpe}` : ""}
+              {last.date ? ` • ${new Date(last.date).toLocaleDateString()}` : ""}
+            </>
+          : "No entry yet"}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <input
+          className="w-full rounded px-2 py-1 bg-white dark:bg-gray-800 border border-black/10 dark:border-white/10"
+          placeholder="Load (bv. 80 kg / 2x24 kg)"
+          value={loadVal}
+          onChange={(e)=>setLoadVal(e.target.value)}
+        />
+        <input
+          className="w-full rounded px-2 py-1 bg-white dark:bg-gray-800 border border-black/10 dark:border-white/10"
+          placeholder="RPE (1–10)"
+          inputMode="numeric"
+          value={rpeVal}
+          onChange={(e)=>setRpeVal(e.target.value)}
+        />
+        <button
+          className="btn-sm bg-gray-700"
+          onClick={()=>{
+            saveLastLoad(name, {
+              load: loadVal.trim(),
+              rpe: rpeVal.trim(),
+              date: new Date().toISOString()
+            });
+            alert("Saved for " + name);
+          }}
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+    function PerformanceForm({ session, onChange }) {
+  const m = session?.meta || {};
+  const perf = m.performance || { load:"", rpe:"", notes:"" };
+  const isStrength = ["kettlebell","barbell","bodyweight"].includes(m.modality);
+  if(!isStrength) return null;
+
+  return (
+    <div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <div>
+          <label className="text-xs text-gray-400">Load</label>
+          <input
+            className="w-full px-2 py-1 rounded bg-gray-800"
+            value={perf.load}
+            onChange={e=>onChange({ ...perf, load:e.target.value })}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-gray-400">RPE (1–10)</label>
+          <input
+            className="w-full px-2 py-1 rounded bg-gray-800"
+            type="number" min="1" max="10"
+            value={perf.rpe}
+            onChange={e=>onChange({ ...perf, rpe:e.target.value })}
+          />
+        </div>
+        <div className="md:col-span-3">
+          <label className="text-xs text-gray-400">Notes</label>
+          <textarea
+            className="w-full px-2 py-1 rounded bg-gray-800" rows="3"
+            value={perf.notes}
+            onChange={e=>onChange({ ...perf, notes:e.target.value })}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
     ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   </script>
 </body>
