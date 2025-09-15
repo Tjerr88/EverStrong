@@ -34,6 +34,7 @@ How to Use
 5. Repeat daily — consistency leads to sustainable progress and long-term resilience.
 
 Philosophy
+
 EverStrong is not just about lifting heavier or going faster.
 It’s about sustainable strength — training that you can do every day, for years to come.
 The app balances hard training with active recovery, so users keep making progress while staying healthy, mobile, and strong for life.
