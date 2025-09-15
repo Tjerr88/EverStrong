@@ -96,7 +96,7 @@
 
     // --- Eénmalige seed van YouTube-links (non-destructief) ---
     const VIDEO_LINKS_SEED = {
-  // Kettlebell — SFG
+  // Kettlebell — KETTLEBELLENGINE
   "One-Legged Deadlift": "https://www.youtube.com/watch?v=wW57VmUxefg",
   "Double Sumo Deadlift": "https://www.youtube.com/watch?v=ymDxI-3cgoI",
   "Single Leg Glute Bridge": "https://www.youtube.com/shorts/dgJoc5mbNzA",
@@ -147,7 +147,7 @@
   "Double Snatch & Press": "https://www.youtube.com/watch?v=bsJpa1Bhe84",
   "Double Front Squat & Push Press": "https://www.youtube.com/shorts/HsAwg5kCORg",
 
-  // Barbell — SFL
+  // Barbell — BARBELLENGINE
   "Back Squat": "https://www.youtube.com/watch?v=-bJIpOq-LWk",
   "Front Squat": "https://www.youtube.com/watch?v=HHxNbhP16UE",
   "Zercher Squat": "https://www.youtube.com/shorts/3F9ZohTI-lg",
@@ -160,7 +160,7 @@
   "Goodmorning": "https://www.youtube.com/shorts/7cpldMZjLOs",
   "Sumo Deadlift": "https://www.youtube.com/watch?v=pfSMst14EFk",
 
-  // Bodyweight — SFB
+  // Bodyweight — BODYWEIGHTENGINE
   "Box Pistol": "https://www.youtube.com/watch?v=ctffzu0jWu0",
   "Top Down Pistol": "https://www.youtube.com/shorts/D5Iib9ZEkk8",
   "Full Pistol": "https://www.youtube.com/shorts/AF3rz1fOIFk",
@@ -237,7 +237,7 @@
   "Cross Carry (OH + suitcase)": "https://www.youtube.com/watch?v=bqBvsheL9AM",
   "Bear Crawl (BW)": "https://www.youtube.com/watch?v=4d52Y9W2M0g",
 
-  // ♻️ Resilient drills
+  // ♻️ DurabilitySequence drills
   "Hack Squat": "https://www.youtube.com/watch?v=-5uDm0_SkkQ",
   "Jefferson Curl": "https://www.youtube.com/watch?v=nM747P0_OwM",
   "Hockey Deadlift": "https://www.youtube.com/watch?v=zdzF5jjs_Q4",
@@ -261,8 +261,8 @@
   // Neck Series (alles in één)
   "Neck Series": "https://www.youtube.com/watch?v=TZXsOQl8CqA",
 
-  // GFM Flow (overall video)
-  "GFM Flow": "https://www.youtube.com/watch?v=LPOaWhj_0c8"
+  // MobilitySequence (overall video)
+  "MobilitySequence": "https://www.youtube.com/watch?v=LPOaWhj_0c8"
 };
 
     (function seedVideoLinksOnce(){
@@ -487,8 +487,8 @@
     }
 
     // Engines
-    const SFG = createEngine({
-      key:'everstrong:sfg:v1',
+    const KETTLEBELLENGINE = createEngine({
+      key:'everstrong:KettlebellEngine:v1',
       patterns:{
         "Swing Pattern": ["One-Legged Deadlift","Double Sumo Deadlift","Single Leg Glute Bridge","One-arm Swing","(Side Stepping) Two-arm Swing","Double Swing"],
         "Get Up Pattern": ["(3 Min) Get Up","Supine to Sit Up","Windmill","Bent Press","Supine to Half Kneel","Half Kneel to Stand"],
@@ -501,8 +501,8 @@
       cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
       sessionsPerCycle:36
     });
-    const SFL = createEngine({
-      key:'everstrong:sfl:v2',
+    const BARBELLENGINE = createEngine({
+      key:'everstrong:BarbellEngine:v2',
       patterns:{
         "Leg Pattern":["Back Squat","Front Squat","Zercher Squat"],
         "Push Pattern":["Bench Press","Incline Bench Press","Shoulder Press"],
@@ -511,8 +511,8 @@
       cycleVolumes:{1:{low:10,medium:20,high:30},2:{low:15,medium:25,high:40},3:{low:20,medium:30,high:50}},
       sessionsPerCycle:18
     });
-    const SFB = createEngine({
-      key:'everstrong:sfb:v1',
+    const BODYWEIGHTENGINE = createEngine({
+      key:'everstrong:BodyweightEngine:v1',
       patterns:{
         "Leg Category":["Box Pistol","Top Down Pistol","Full Pistol"],
         "Push Category":["One-arm One-leg Push Up","Wall HSPU (assist)","Dips"],
@@ -989,7 +989,7 @@ function ExerciseCard({ line }) {
       return (
         <div>
           <h3 className="font-semibold mb-2 text-base">{title}</h3>
-{/* Quick demo button for overall Recovery choices (GFM Flow / Neck Series) */}
+{/* Quick demo button for overall Recovery choices (MobilitySequence / Neck Series) */}
 {isRecovery && session?.meta?.choice && (() => {
   const map = getVideoLinks();
   const url = map[session.meta.choice];
@@ -1256,10 +1256,10 @@ function ExerciseCard({ line }) {
       alert("All history cleared.");
     }
 
-    /* ===== ACTIVE RECOVERY (3 opties + Resilient lijst) ===== */
-    function chooseResilient(){
+    /* ===== ACTIVE RECOVERY (3 opties + DurabilitySequence lijst) ===== */
+    function chooseDurabilitySequence(){
       const lines = [
-        "Resilient — quality over quantity; pain-free range.",
+        "DurabilitySequence — quality over quantity; pain-free range.",
         "",
         "Hack Squat",
         "* 2×5–8",
@@ -1300,11 +1300,11 @@ function ExerciseCard({ line }) {
         "* Lateral Tilt — 5–8 each",
         "* Rotation — 5–8 each"
       ];
-      const recSession = { main: lines, meta: { modality:'recovery', date: new Date().toISOString(), choice:'Resilient' } };
+      const recSession = { main: lines, meta: { modality:'recovery', date: new Date().toISOString(), choice:'DurabilitySequence' } };
       return recSession;
     }
 
-    /* ======= FULL GFM FLOW GENERATOR (General) ======= */
+    /* ======= FULL MOBILITYSEQUENCE GENERATOR (General) ======= */
     const MOBILITY_DB_GENERAL = [
       "Figure 4 Position → Figure 4 Lunge → Half Heel Sit",
       "Z-position Switches → Z-position Side Roll",
@@ -1342,12 +1342,12 @@ function ExerciseCard({ line }) {
       const pickCount = 7;
       const steps = src.slice(0, pickCount);
       const lines = [
-  "GFM Flow (~15–20 min):",
+  "MobilitySequence (~15–20 min):",
   "",
   ...steps.map((s, i) => `${i + 1}) ${s} — 1–2 min`)
 ];
 
-      return { main: lines, meta: { modality: "recovery", date: new Date().toISOString(), choice: "GFM Flow" } };
+      return { main: lines, meta: { modality: "recovery", date: new Date().toISOString(), choice: "MobilitySequence" } };
     }
     function chooseZone2Only(){
       const lines = ["Zone #2", "* Do 30 minutes of continuous Zone 2 cardio (walking, cycling, rowing, etc.)."];
@@ -1513,7 +1513,7 @@ useEffect(() => {
         return isSameOrBefore(infernoNextDue, todayISO());
       }, [infernoAuto, infernoNextDue]);
 
-      function engineFor(m){ return m==='kettlebell'?SFG : m==='barbell'?SFL : SFB; }
+      function engineFor(m){ return m==='kettlebell'?KETTLEBELLENGINE : m==='barbell'?BARBELLENGINE : BODYWEIGHTENGINE; }
       function currentKey(m){ return `current:${m}`; }
       function historyKey(m){ return `history:${m}`; }
 
@@ -1656,7 +1656,7 @@ function pinInferno(target=400){
       // Recovery chooser: 3 opties
       function openRecoverySession(kind){
         let rec=null;
-        if(kind==='resilient'){ rec = chooseResilient(); }
+        if(kind==='DurabilitySequence'){ rec = chooseDurabilitySequence(); }
         else if(kind==='gfm'){ rec = chooseGFMFlow(); }
         else { rec = chooseZone2Only(); }
         lsSet(`current:recovery`, rec);
@@ -1690,7 +1690,7 @@ function openBreathing(minutes=10, level="Beginner"){
         if(passed === total){
           setTestPassed(true);
         } else {
-          const eng = isKB ? SFG : isBB ? SFL : SFB;
+          const eng = isKB ? KETTLEBELLENGINE : isBB ? BARBELLENGINE : BODYWEIGHTENGINE;
           if(eng.current_phase < 3){
             eng.current_phase += 1;
           } else {
@@ -1716,7 +1716,7 @@ function openBreathing(minutes=10, level="Beginner"){
       }
       function startNewCycle(){
         const mod = session?.meta?.modality;
-        const eng = mod==='kettlebell_test' ? SFG : mod==='barbell_test' ? SFL : SFB; // bodyweight_test → SFB
+        const eng = mod==='kettlebell_test' ? KETTLEBELLENGINE : mod==='barbell_test' ? BARBELLENGINE : BODYWEIGHTENGINE; // bodyweight_test → BODYWEIGHTENGINE
         eng.startNewCycle?.();
 
         try{ localStorage.removeItem(`current:${mod}`); }catch(e){}
@@ -1731,7 +1731,7 @@ function openBreathing(minutes=10, level="Beginner"){
       }
       function continueThisCycle(){
         const mod = session?.meta?.modality;
-        const eng = mod==='kettlebell_test' ? SFG : mod==='barbell_test' ? SFL : SFB; // bodyweight_test → SFB
+        const eng = mod==='kettlebell_test' ? KETTLEBELLENGINE : mod==='barbell_test' ? BARBELLENGINE : BODYWEIGHTENGINE; // bodyweight_test → BODYWEIGHTENGINE
 
         if(eng.current_phase < 3){
           eng.current_phase += 1;
@@ -2034,8 +2034,8 @@ if (metaMod === 'breathing') {
     Use these if you want to add another recovery block, or override today’s auto-selected session.
   </p>
   <div className="flex flex-col md:flex-row gap-2">
-    <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('resilient')}>Resilient</button>
-    <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('gfm')}>GFM Flow</button>
+    <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('DurabilitySequence')}>DurabilitySequence</button>
+    <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('gfm')}>MobilitySequence</button>
     <button className="btn bg-gray-700 w-full" onClick={()=>openRecoverySession('zone2')}>Zone #2</button>
     <button className="btn bg-gray-700 w-full" onClick={()=>openBreathing(10,'Beginner')}>Breathing (10 min)</button>
   </div>
@@ -2068,8 +2068,8 @@ if (metaMod === 'breathing') {
               <button onClick={()=>document.getElementById("addRecoveryDlg").close()} className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">✕</button>
             </div>
             <div className="p-3 space-y-2">
-              <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('resilient'); document.getElementById("addRecoveryDlg").close(); }}>Resilient</button>
-              <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('gfm'); document.getElementById("addRecoveryDlg").close(); }}>GFM Flow</button>
+              <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('DurabilitySequence'); document.getElementById("addRecoveryDlg").close(); }}>DurabilitySequence</button>
+              <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('gfm'); document.getElementById("addRecoveryDlg").close(); }}>MobilitySequence</button>
               <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('zone2'); document.getElementById("addRecoveryDlg").close(); }}>Zone #2</button>
             </div>
           </dialog>
@@ -2245,14 +2245,14 @@ if (metaMod === 'breathing') {
     // === Auto-pin mapping ===
     // 11–15 → train (niks pinnen)
     // 9–10  → Zone #2
-    // 8     → Resilient
+    // 8     → DurabilitySequence
     // ≤7    → Breathing (10 min)
     if (gateDecision === "recovery") {
       let rec = null;
       if ((totalRecovery ?? 0) >= 9) {
         rec = chooseZone2Only();
       } else if ((totalRecovery ?? 0) === 8) {
-        rec = chooseResilient();
+        rec = chooseDurabilitySequence();
       } else {
         rec = buildBreathingSession(10, "Beginner");
       }
@@ -2368,11 +2368,7 @@ if (metaMod === 'breathing') {
         </div>
       );
     }
-
     ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   </script>
 </body>
 </html>
-
-
-
