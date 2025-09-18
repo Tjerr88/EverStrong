@@ -363,7 +363,7 @@ function getLastLoadFor(name){
             } else { // c===3
               if (volume === 20) return ["5-15", 20];
               if (volume === 30) return ["10-20", 30];
-              if (volume === 50) return ["10-15-25", 50];
+              if (volume === 50) return ["5-10-15-20", 50];
             }
           }
 
@@ -376,7 +376,7 @@ function getLastLoadFor(name){
             } else if (c === 2) {
               if (volume === 15) return ["2-4-6 + 1-2", 15];
               if (volume === 25) return ["2x 2-4-6 + 1", 25];
-              if (volume === 40) return ["2-4-6-8-10 + 2-4-6", 40];
+              if (volume === 40) return ["2-4-6-8-10 + 4-6", 40];
             } else { // c===3
               if (volume === 20) return ["2-4-6-8", 20];
               if (volume === 30) return ["2-4-6-8-10", 30];
@@ -394,9 +394,9 @@ function getLastLoadFor(name){
             if (volume === 25) return ["1-2-3-4-5 + 1-2-3-4", 25];
             if (volume === 40) return ["2x 1-2-3-4-5 + 1-2-3-4", 40];
           } else { // c===3
-            if (volume === 20) return ["2x 1-2-3-4", 20];
-            if (volume === 30) return ["2x 1-2-3-4-5", 30];
-            if (volume === 50) return ["3x 1-2-3-4-5 + 1-2", 50];
+            if (volume === 20) return ["2x 2-3-5", 20];
+            if (volume === 30) return ["3x 2-3-5", 30];
+            if (volume === 50) return ["2x 2-3-5-10 + 2-3-5", 50];
           }
 
           return [`${volume} reps`, volume];
@@ -2447,3 +2447,4 @@ function LastLoadTracker({ name, open }) {
   </script>
 </body>
 </html>
+
