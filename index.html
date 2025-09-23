@@ -899,7 +899,7 @@ function ExerciseCard({ line }) {
                   </button>
                 ) : (
                   <div className="w-40 h-24 rounded-lg grid place-items-center bg-gray-200 dark:bg-gray-800 text-xs text-gray-600">
-                    Geen thumbnail
+                    No thumbnail
                   </div>
                 )}
 
@@ -920,9 +920,9 @@ function ExerciseCard({ line }) {
                         window.open(url, "_blank", "noopener,noreferrer");
                       }}
                       disabled={!url}
-                      title={url ? "Open video in nieuw tabblad" : "Voeg eerst een link toe"}
+                      title={url ? "Open video in new tab" : "Voeg eerst een link toe"}
                     >
-                      Bekijk demo
+                      Open Video
                     </button>
                     {url && (
                       <button
@@ -930,14 +930,15 @@ function ExerciseCard({ line }) {
                         onClick={()=>{ setUrl(""); saveVideoLink(name, ""); }}
                         title="Link verwijderen"
                       >
-                        Verwijder link
+                        Remove Link
                       </button>
                     )}
                   </div>
-                  {!url && <p className="text-xs text-gray-600 dark:text-gray-400">Plak een YouTube-URL voor een klikbare thumbnail. Ondersteunt <code>watch?v=</code>, <code>youtu.be</code>, <code>shorts</code> en <code>embed</code>.</p>}
+                  {!url && <p className="text-xs text-gray-600 dark:text-gray-400">Paste a YouTube URL to get a clickable thumbnail.
+ Ondersteunt <code>watch?v=</code>, <code>youtu.be</code>, <code>shorts</code> en <code>embed</code>.</p>}
                 </div>
               </div>
-<LastLoadTracker name={name} open={open} />d
+<LastLoadTracker name={name} open={open} />
             </div>
           )}
         </section>
@@ -1452,6 +1453,8 @@ useEffect(() => {
       const [session,setSession]=useState(null);
       const [elapsed,setElapsed]=useState(0);
       const [running,setRunning]=useState(false);
+const [prevSession, setPrevSession] = useState(null);
+
 
       // Recovery scores (0–5)
       const [sleepScore,setSleepScore]=useState(lsGet("rec:sleep",null));
@@ -1508,10 +1511,12 @@ useEffect(() => {
       // Inferno suggestion (friendly quick button)
       const [infernoAuto, setInfernoAuto] = useState(lsGet("inferno:auto","off")); // "off" | "14" | "21"
       const [infernoNextDue, setInfernoNextDue] = useState(lsGet("inferno:next_due", null));
-      const infernoDueNow = useMemo(()=>{
-        if(infernoAuto==="off" || !infernoNextDue) return false;
-        return isSameOrBefore(infernoNextDue, todayISO());
-      }, [infernoAuto, infernoNextDue]);
+const infernoDueNow = useMemo(() => {
+  if (infernoAuto === "off") return false;
+  if (!infernoNextDue) return true; // geen next_due = meteen due
+  return isSameOrBefore(infernoNextDue, todayISO());
+}, [infernoAuto, infernoNextDue]);
+
 
       function engineFor(m){ return m==='kettlebell'?KETTLEBELLENGINE : m==='barbell'?BARBELLENGINE : BODYWEIGHTENGINE; }
       function currentKey(m){ return `current:${m}`; }
@@ -1630,6 +1635,7 @@ function pinInferno(target=400){
       function openHiitChooser(){ pinInferno(400); }
 
       function openWarmup(){
+  setPrevSession(session);
         const lines = [
           "Warm-up — do between 10 reps and your age per movement",
           "",
@@ -1875,51 +1881,86 @@ if (metaMod === 'breathing') {
       const PageTrain = (
         <>
           {/* Suggested Next */}
-          {suggestion && suggestion.session && enabledList.length >= (suggestion.modality==='hiit' ? 0 : 2) && (
-            <CalmCard title="Suggested Next">
-              <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
-                Based on your last session, try this next:
-              </p>
-              <button
-                className="btn bg-blue-600 w-full"
-                onClick={()=>{
-                  setModality(suggestion.modality);
-                  const pinned = ensurePinnedFor(suggestion.modality);
-                  setSession(pinned);
-                }}
-              >
-                {suggestion.modality.charAt(0).toUpperCase()+suggestion.modality.slice(1)} — {suggestion.session.meta.cycle}.{suggestion.session.meta.phase}.{suggestion.session.meta.session}
-              </button>
-            </CalmCard>
-          )}
+            {session && (
+  <CalmCard
+  title={
+    <div className="flex items-center justify-between">
+      <span>Today’s Session</span>
+      {(infernoAuto!=="off" && infernoDueNow) && (
+        <span className="ml-2">🔥</span>
+      )}
+    </div>
+  }
+>
+    {(session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test' || session.meta?.modality==='bodyweight_test')
+      ? (
+        <TestView
+          modality={
+            session.meta.modality==='kettlebell_test' ? 'kettlebell'
+            : session.meta.modality==='barbell_test' ? 'barbell'
+            : 'bodyweight'
+          }
+          testChecks={testChecks}
+          setTestChecks={setTestChecks}
+          testPassed={testPassed}
+          onSubmit={submitTestResult}
+          onStartNewCycle={startNewCycle}
+          onContinueCycle={continueThisCycle}
+        />
+      ) : (
+        <SessionView session={session}/>
+      )
+    }
+    <div className="flex gap-2 mt-2">
+      {session?.meta?.modality==='warmup' ? (
+        <button
+          onClick={()=>{
+            try{ localStorage.removeItem(`current:warmup`); }catch(e){}
+            if (prevSession) { setSession(prevSession); setPrevSession(null); }
+            else { setSession(null); }
+          }}
+          className="btn-sm bg-gray-600 w-full"
+          title="Close warm-up (not saved)"
+        >
+          Close Warm-up
+        </button>
+      ) : (
+        <>
+          <button onClick={completeSession} className="btn-sm bg-green-600 w-1/2" disabled={!session}>Complete</button>
+          <button onClick={openWarmup} className="btn-sm bg-emerald-700 w-1/2">Warm-up</button>
+        </>
+      )}
+    </div>
+  </CalmCard>
+)}
+
 
           {/* Quick Switch + Inferno Ready (friendly button) */}
-          <CalmCard title="Quick Actions" subtitle="Pick your modality or open a warm-up.">
-            <div className="flex flex-wrap gap-2">
-              <ModalityToggles
-                modality={session?.meta?.modality==='hiit'?'bodyweight':modality}
-                setModality={m=>{ if(m==='hiit')return; setModality(m); const cur=ensurePinnedFor(m); setSession(cur); }}
-                lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
-                enabled={enabled}
-              />
-              <button onClick={openWarmup} className="btn bg-emerald-700">Warm-up</button>
+<Accordion title="Choose another session" defaultOpen={false}>
+  <div className="flex flex-wrap gap-2">
+    <ModalityToggles
+      modality={session?.meta?.modality==='hiit'?'bodyweight':modality}
+      setModality={m=>{ if(m==='hiit')return; setModality(m); const cur=ensurePinnedFor(m); setSession(cur); }}
+      lastModalityVisual={getLatestMainModalityFromHistory() || lsGet("last_modality", null) || null}
+      enabled={enabled}
+    />
+    {infernoAuto!=="off" && infernoDueNow && (
+      <button
+        className="btn bg-indigo-600"
+        title={`It's time again (due since ${new Date(infernoNextDue).toLocaleDateString()})`}
+        onClick={()=>pinInferno(400)}
+      >
+        Inferno (Ready)
+      </button>
+    )}
+  </div>
+  {infernoAuto!=="off" && infernoDueNow && (
+    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+      It’s been {infernoAuto} days since your last Inferno — you’re ready for another dose.
+    </p>
+  )}
+</Accordion>
 
-              {infernoAuto!=="off" && infernoDueNow && (
-                <button
-                  className="btn bg-indigo-600"
-                  title={`It's time again (due since ${new Date(infernoNextDue).toLocaleDateString()})`}
-                  onClick={()=>pinInferno(400)}
-                >
-                  Inferno (Ready)
-                </button>
-              )}
-            </div>
-            {infernoAuto!=="off" && infernoDueNow && (
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                It’s been {infernoAuto} days since your last Inferno — you’re ready for another dose.
-              </p>
-            )}
-          </CalmCard>
 
           {!session && (
             <CalmCard title="Get started">
@@ -1952,49 +1993,7 @@ if (metaMod === 'breathing') {
               </div>
             </CalmCard>
           )}
-
-          {session && (
-            <CalmCard title="Session" subtitle="Pinned until Complete">
-              {(session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test' || session.meta?.modality==='bodyweight_test')
-                ? (
-                  <TestView
-                    modality={
-                      session.meta.modality==='kettlebell_test' ? 'kettlebell'
-                      : session.meta.modality==='barbell_test' ? 'barbell'
-                      : 'bodyweight'
-                    }
-                    testChecks={testChecks}
-                    setTestChecks={setTestChecks}
-                    testPassed={testPassed}
-                    onSubmit={submitTestResult}
-                    onStartNewCycle={startNewCycle}
-                    onContinueCycle={continueThisCycle}
-                  />
-                ) : (
-                  <SessionView session={session}/>
-                )
-              }
-              <div className="flex gap-2 mt-2">
-                {session?.meta?.modality==='warmup' ? (
-                  <button
-                    onClick={()=>{ try{localStorage.removeItem(`current:warmup`);}catch(e){}; setSession(null); }}
-                    className="btn-sm bg-gray-600 w-full"
-                    title="Close warm-up (not saved)"
-                  >
-                    Close Warm-up
-                  </button>
-                ) : (
-                  <>
-                    <button onClick={completeSession} className="btn-sm bg-green-600 w-1/2" disabled={!session}>Complete</button>
-                    {session?.meta?.modality!=='warmup' && (
-                      <button onClick={openWarmup} className="btn-sm bg-emerald-700 w-1/2">Warm-up</button>
-                    )}
-                  </>
-                )}
-              </div>
-            </CalmCard>
-          )}
-          <CalmCard title="Timer">
+                  <CalmCard title="Timer">
             <Timer elapsed={elapsed} setElapsed={setElapsed} running={running} setRunning={setRunning} />
           </CalmCard>
         </>
@@ -2154,19 +2153,30 @@ const PageHistory = (
               <p className="text-sm font-medium mb-2">Inferno Suggestion</p>
               <select
                 value={infernoAuto}
-                onChange={e=>{
-                  const val = e.target.value;
-                  lsSet("inferno:auto", val);
-                  setInfernoAuto(val);
-                  if(val !== "off"){
-                    const next = addDays(todayISO(), parseInt(val,10));
-                    lsSet("inferno:next_due", next);
-                    setInfernoNextDue(next);
-                  } else {
-                    lsSet("inferno:next_due", null);
-                    setInfernoNextDue(null);
-                  }
-                }}
+                onChange={(e) => {
+  const val = e.target.value; // "off" | "14" | "21"
+  setInfernoAuto(val);
+  // Sla de keuze ook op; als je dit elders al doet, mag deze regel blijven staan of weg.
+  lsSet("inferno:auto", val);
+
+  if (val !== "off") {
+    // Nieuw gedrag: als er nog nooit een datum stond, zet 'm op NU (direct due)
+    const existing = lsGet("inferno:next_due", null);
+    if (!existing) {
+      const nowISO = todayISO(); // sluit aan op jouw isSameOrBefore(infernoNextDue, todayISO())
+      lsSet("inferno:next_due", nowISO);
+      setInfernoNextDue(nowISO);
+    } else {
+      // Laat een bestaande planning staan; alleen state bijwerken
+      setInfernoNextDue(existing);
+    }
+  } else {
+    // Suggestion uit → planning leeg
+    lsSet("inferno:next_due", null);
+    setInfernoNextDue(null);
+  }
+}}
+
                 className="border rounded p-2 w-full bg-white dark:bg-gray-700"
               >
                 <option value="off">Off (no suggestion)</option>
