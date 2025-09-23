@@ -2051,47 +2051,55 @@ if (metaMod === 'breathing') {
     <button className="btn bg-gray-700 w-full" onClick={()=>openBreathing(10,'Beginner')}>Breathing (10 min)</button>
   </div>
 </Accordion>
-
-
-          <Accordion title="Recovery History">
-            <History modality="recovery" />
-            <div className="mt-3">
-              <button
-                className="btn bg-gray-700 w-full disabled:opacity-40"
-                onClick={()=>{
-                  const dlg = document.getElementById('addRecoveryDlg');
-                  dlg?.showModal();
-                }}
-                disabled={recoveryCount >= REC_MAX}
-                title={recoveryCount >= REC_MAX ? "Daily recovery limit reached" : "Add another recovery block"}
-              >
-                Log another recovery
-              </button>
-              <p className="text-[11px] text-gray-600 mt-1">
-                {recoveryCount >= REC_MAX ? "Daily limit reached (2)." : "You can log up to 2 recovery blocks per day."}
-              </p>
-            </div>
-          </Accordion>
-
-          <dialog id="addRecoveryDlg" className="rounded-xl p-0 w-80 bg-white dark:bg-gray-900 border border-black/10 dark:border-white/10">
-            <div className="p-3 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
-              <span className="font-semibold">Add Recovery</span>
-              <button onClick={()=>document.getElementById("addRecoveryDlg").close()} className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">✕</button>
-            </div>
-            <div className="p-3 space-y-2">
-              <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('DurabilitySequence'); document.getElementById("addRecoveryDlg").close(); }}>DurabilitySequence</button>
-              <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('gfm'); document.getElementById("addRecoveryDlg").close(); }}>MobilitySequence</button>
-              <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('zone2'); document.getElementById("addRecoveryDlg").close(); }}>Zone #2</button>
-            </div>
-          </dialog>
         </>
       );
 
-      const PageHistory = (
-        <CalmCard title="History">
-          <History modality={(session && session.meta && session.meta.modality) ? session.meta.modality : modality} />
-        </CalmCard>
-      );
+const PageHistory = (
+  <CalmCard title="History">
+    {/* Recovery today (moved here from Train) */}
+    <div className="mb-3">
+      <button
+        className="btn bg-gray-700 w-full disabled:opacity-40"
+        onClick={() => {
+          const dlg = document.getElementById('addRecoveryDlg');
+          dlg?.showModal();
+        }}
+        disabled={recoveryCount >= REC_MAX}
+        title={recoveryCount >= REC_MAX ? "Daily recovery limit reached" : "Add another recovery block"}
+      >
+        Log another recovery
+      </button>
+      <p className="text-[11px] text-gray-500 mt-1">
+        {recoveryCount >= REC_MAX ? "Daily limit reached (2)." : "You can log up to 2 recovery blocks per day."}
+      </p>
+    </div>
+
+    {/* Recovery History list */}
+    <div className="mb-4">
+      <Accordion title="Recovery History">
+        <History modality="recovery" />
+      </Accordion>
+    </div>
+
+    {/* General History (current modality) */}
+    <History modality={(session && session.meta && session.meta.modality) ? session.meta.modality : modality} />
+
+    {/* Dialog to add a recovery block */}
+    <dialog id="addRecoveryDlg" className="rounded-xl p-0 w-80 bg-white dark:bg-gray-900 border border-black/10 dark:border-white/10">
+      <div className="p-3 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
+        <span className="font-semibold">Add Recovery</span>
+        <button onClick={()=>document.getElementById("addRecoveryDlg").close()} className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5">✕</button>
+      </div>
+      <div className="p-3 space-y-2">
+        <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('DurabilitySequence'); document.getElementById("addRecoveryDlg").close(); }}>DurabilitySequence</button>
+        <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('gfm'); document.getElementById("addRecoveryDlg").close(); }}>MobilitySequence</button>
+        <button className="btn bg-gray-700 w-full" onClick={()=>{ openRecoverySession('zone2'); document.getElementById("addRecoveryDlg").close(); }}>Zone #2</button>
+        <button className="btn bg-gray-700 w-full" onClick={()=>{ openBreathing(10,'Beginner'); document.getElementById("addRecoveryDlg").close(); }}>Breathing (10 min)</button>
+      </div>
+    </dialog>
+  </CalmCard>
+);
+
 
       const PageExport = (
         <CalmCard title="Export & Maintenance">
@@ -2447,5 +2455,6 @@ function LastLoadTracker({ name, open }) {
   </script>
 </body>
 </html>
+
 
 
