@@ -1997,13 +1997,6 @@ if (metaMod === 'breathing') {
               </div>
             </CalmCard>
           )}
-
-          {session && !['warmup','breathing','recovery','kettlebell_test','barbell_test','bodyweight_test','hiit'].includes(session?.meta?.modality) && (
-            <CalmCard title="Performance">
-              <PerformanceForm session={session} onChange={updatePerformance}/>
-            </CalmCard>
-          )}
-
           <CalmCard title="Timer">
             <Timer elapsed={elapsed} setElapsed={setElapsed} running={running} setRunning={setRunning} />
           </CalmCard>
@@ -2409,3 +2402,4 @@ function LastLoadTracker({ name, open }) {
   </script>
 </body>
 </html>
+
