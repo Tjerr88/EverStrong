@@ -790,11 +790,10 @@ function buildBreathingSession(minutes=10, level="Beginner"){
               ))}
             </div>
           </dialog>
-
           {/* Page content */}
-<div className="mt-3 space-y-3">
-  {children}
-</div>
+          <div className="mt-3 space-y-3">
+            {children}
+          </div>
         </div>
       );
     }
@@ -1453,8 +1452,7 @@ useEffect(() => {
       const [session,setSession]=useState(null);
       const [elapsed,setElapsed]=useState(0);
       const [running,setRunning]=useState(false);
-      const [sessionRpe, setSessionRpe] = useState('');
-const [sessionNote, setSessionNote] = useState('');
+
       // Recovery scores (0–5)
       const [sleepScore,setSleepScore]=useState(lsGet("rec:sleep",null));
       const [energyScore,setEnergyScore]=useState(lsGet("rec:energy",null));
@@ -1462,13 +1460,10 @@ const [sessionNote, setSessionNote] = useState('');
       useEffect(()=>lsSet("rec:sleep",sleepScore),[sleepScore]);
       useEffect(()=>lsSet("rec:energy",energyScore),[energyScore]);
       useEffect(()=>lsSet("rec:body",bodyScore),[bodyScore]);
-      // Laad bestaande waarden als een sessie (opnieuw) gepind wordt
-useEffect(()=>{
-  setSessionRpe(session?.meta?.session_rpe ?? '');
-  setSessionNote(session?.meta?.session_note ?? '');
-}, [session]);
+
       const totalRecovery = (sleepScore??0)+(energyScore??0)+(bodyScore??0);
       const gateDecision = totalRecovery>=11 ? "train" : totalRecovery>=7 ? "recovery" : "fullrest";
+
       const [route, setRoute] = useState("gate");
       const [recoveryMode, setRecoveryMode] = useState(lsGet("recovery:mode","gate"));
       useEffect(()=>lsSet("recovery:mode", recoveryMode),[recoveryMode]);
@@ -1952,10 +1947,12 @@ if (metaMod === 'breathing') {
 >
   Start Inferno (400 SU)
 </button>
+
 </div>
               </div>
             </CalmCard>
           )}
+
           {session && (
             <CalmCard title="Session" subtitle="Pinned until Complete">
               {(session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test' || session.meta?.modality==='bodyweight_test')
@@ -2402,4 +2399,3 @@ function LastLoadTracker({ name, open }) {
   </script>
 </body>
 </html>
-
