@@ -792,19 +792,9 @@ function buildBreathingSession(minutes=10, level="Beginner"){
           </dialog>
 
           {/* Page content */}
-          <div className="mt-3 space-y-3">
-            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-              <span className="pill">Recovery today: {recoveryCount}/{REC_MAX}</span>
-              <button
-                onClick={()=>setRecoveryMode(m=> m==="gate" ? "inline" : "gate")}
-                className="underline"
-                title="Toggle recovery gate/inline"
-              >
-                Recovery mode: {recoveryMode === "gate" ? "Gate" : "Inline"}
-              </button>
-            </div>
-            {children}
-          </div>
+<div className="mt-3 space-y-3">
+  {children}
+</div>
         </div>
       );
     }
@@ -1463,7 +1453,8 @@ useEffect(() => {
       const [session,setSession]=useState(null);
       const [elapsed,setElapsed]=useState(0);
       const [running,setRunning]=useState(false);
-
+      const [sessionRpe, setSessionRpe] = useState('');
+const [sessionNote, setSessionNote] = useState('');
       // Recovery scores (0–5)
       const [sleepScore,setSleepScore]=useState(lsGet("rec:sleep",null));
       const [energyScore,setEnergyScore]=useState(lsGet("rec:energy",null));
@@ -1471,10 +1462,13 @@ useEffect(() => {
       useEffect(()=>lsSet("rec:sleep",sleepScore),[sleepScore]);
       useEffect(()=>lsSet("rec:energy",energyScore),[energyScore]);
       useEffect(()=>lsSet("rec:body",bodyScore),[bodyScore]);
-
+      // Laad bestaande waarden als een sessie (opnieuw) gepind wordt
+useEffect(()=>{
+  setSessionRpe(session?.meta?.session_rpe ?? '');
+  setSessionNote(session?.meta?.session_note ?? '');
+}, [session]);
       const totalRecovery = (sleepScore??0)+(energyScore??0)+(bodyScore??0);
       const gateDecision = totalRecovery>=11 ? "train" : totalRecovery>=7 ? "recovery" : "fullrest";
-
       const [route, setRoute] = useState("gate");
       const [recoveryMode, setRecoveryMode] = useState(lsGet("recovery:mode","gate"));
       useEffect(()=>lsSet("recovery:mode", recoveryMode),[recoveryMode]);
@@ -1958,12 +1952,10 @@ if (metaMod === 'breathing') {
 >
   Start Inferno (400 SU)
 </button>
-
 </div>
               </div>
             </CalmCard>
           )}
-
           {session && (
             <CalmCard title="Session" subtitle="Pinned until Complete">
               {(session.meta?.modality==='kettlebell_test' || session.meta?.modality==='barbell_test' || session.meta?.modality==='bodyweight_test')
@@ -2413,48 +2405,7 @@ function LastLoadTracker({ name, open }) {
     </div>
   );
 }
-    function PerformanceForm({ session, onChange }) {
-  const m = session?.meta || {};
-  const perf = m.performance || { load:"", rpe:"", notes:"" };
-  const isStrength = ["kettlebell","barbell","bodyweight"].includes(m.modality);
-  if(!isStrength) return null;
-
-  return (
-    <div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-        <div>
-          <label className="text-xs text-gray-400">Load</label>
-          <input
-            className="w-full px-2 py-1 rounded bg-gray-800"
-            value={perf.load}
-            onChange={e=>onChange({ ...perf, load:e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="text-xs text-gray-400">RPE (1–10)</label>
-          <input
-            className="w-full px-2 py-1 rounded bg-gray-800"
-            type="number" min="1" max="10"
-            value={perf.rpe}
-            onChange={e=>onChange({ ...perf, rpe:e.target.value })}
-          />
-        </div>
-        <div className="md:col-span-3">
-          <label className="text-xs text-gray-400">Notes</label>
-          <textarea
-            className="w-full px-2 py-1 rounded bg-gray-800" rows="3"
-            value={perf.notes}
-            onChange={e=>onChange({ ...perf, notes:e.target.value })}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
     ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
   </script>
 </body>
 </html>
-
-
-
