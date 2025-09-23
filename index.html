@@ -793,7 +793,7 @@ function buildBreathingSession(minutes=10, level="Beginner"){
 
           {/* Page content */}
           <div className="mt-3 space-y-3">
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
               <span className="pill">Recovery today: {recoveryCount}/{REC_MAX}</span>
               <button
                 onClick={()=>setRecoveryMode(m=> m==="gate" ? "inline" : "gate")}
@@ -831,7 +831,7 @@ function buildBreathingSession(minutes=10, level="Beginner"){
           {(title || subtitle) && (
             <div className="px-3 pt-3">
               {title && <h2 className="text-lg font-semibold">{title}</h2>}
-              {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>}
+              {subtitle && <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{subtitle}</p>}
             </div>
           )}
           <div className="px-3 py-3">
@@ -909,7 +909,7 @@ function ExerciseCard({ line }) {
                     </span>
                   </button>
                 ) : (
-                  <div className="w-40 h-24 rounded-lg grid place-items-center bg-gray-200 dark:bg-gray-800 text-xs text-gray-500">
+                  <div className="w-40 h-24 rounded-lg grid place-items-center bg-gray-200 dark:bg-gray-800 text-xs text-gray-600">
                     Geen thumbnail
                   </div>
                 )}
@@ -945,7 +945,7 @@ function ExerciseCard({ line }) {
                       </button>
                     )}
                   </div>
-                  {!url && <p className="text-xs text-gray-500 dark:text-gray-400">Plak een YouTube-URL voor een klikbare thumbnail. Ondersteunt <code>watch?v=</code>, <code>youtu.be</code>, <code>shorts</code> en <code>embed</code>.</p>}
+                  {!url && <p className="text-xs text-gray-600 dark:text-gray-400">Plak een YouTube-URL voor een klikbare thumbnail. Ondersteunt <code>watch?v=</code>, <code>youtu.be</code>, <code>shorts</code> en <code>embed</code>.</p>}
                 </div>
               </div>
 <LastLoadTracker name={name} open={open} />d
@@ -1426,7 +1426,7 @@ function ExerciseCard({ line }) {
               </button>
             ))}
           </div>
-          {value!=null && <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{scale[value]}</div>}
+          {value!=null && <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{scale[value]}</div>}
         </div>
       );
     }
@@ -1888,7 +1888,7 @@ if (metaMod === 'breathing') {
           {/* Suggested Next */}
           {suggestion && suggestion.session && enabledList.length >= (suggestion.modality==='hiit' ? 0 : 2) && (
             <CalmCard title="Suggested Next">
-              <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+              <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
                 Based on your last session, try this next:
               </p>
               <button
@@ -1926,7 +1926,7 @@ if (metaMod === 'breathing') {
               )}
             </div>
             {infernoAuto!=="off" && infernoDueNow && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                 It’s been {infernoAuto} days since your last Inferno — you’re ready for another dose.
               </p>
             )}
@@ -2041,7 +2041,7 @@ if (metaMod === 'breathing') {
 
 {/* Manual extra options */}
 <Accordion title="Extra Recovery Options" defaultOpen>
-  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
     Use these if you want to add another recovery block, or override today’s auto-selected session.
   </p>
   <div className="flex flex-col md:flex-row gap-2">
@@ -2067,7 +2067,7 @@ if (metaMod === 'breathing') {
               >
                 Log another recovery
               </button>
-              <p className="text-[11px] text-gray-500 mt-1">
+              <p className="text-[11px] text-gray-600 mt-1">
                 {recoveryCount >= REC_MAX ? "Daily limit reached (2)." : "You can log up to 2 recovery blocks per day."}
               </p>
             </div>
@@ -2143,7 +2143,7 @@ if (metaMod === 'breathing') {
                   </label>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
                 Only enabled modalities appear in Suggested Next, Quick Switch, and rotation.
               </p>
             </div>
@@ -2183,13 +2183,13 @@ if (metaMod === 'breathing') {
                 <option value="14">Suggest every 14 days</option>
                 <option value="21">Suggest every 21 days</option>
               </select>
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
                 A friendly “Inferno (Ready)” button will appear in Quick Actions when it’s time again. No pressure—recovery gates still apply.
               </p>
             </div>
 
             <div className="border-t border-black/10 dark:border-white/10 pt-3">
-              <p className="text-xs text-gray-500 dark:text-gray-400">Default Modality</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Default Modality</p>
               <div className="mt-1">
                 <ModalityToggles
                   modality={session?.meta?.modality==='hiit'?'bodyweight':modality}
@@ -2234,7 +2234,7 @@ if (metaMod === 'breathing') {
             <div className="w-full px-4">
               <div className="text-center mb-3">
                 <h1 className="text-3xl font-bold">EverStrong</h1>
-                <p className="text-gray-500 dark:text-gray-400 text-sm">Daily Recovery Check</p>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Daily Recovery Check</p>
               </div>
               <div className="border border-black/10 dark:border-white/10 rounded-xl p-4 mb-4">
                 <p className="font-semibold mb-2">Daily Recovery Check</p>
@@ -2284,7 +2284,7 @@ if (metaMod === 'breathing') {
                 </div>
                 <p className="text-xs text-gray-400 mt-2">We remember your choice until midnight.</p>
               </div>
-              <p className="text-[11px] text-center text-gray-500 mt-3">You'll see training options after you confirm.</p>
+              <p className="text-[11px] text-center text-gray-600 mt-3">You'll see training options after you confirm.</p>
             </div>
           </div>
         );
@@ -2336,7 +2336,7 @@ if (metaMod === 'breathing') {
       }
 
       if (visible.length===0) {
-        return <div className="text-sm text-gray-500 dark:text-gray-400">No modalities enabled.</div>;
+        return <div className="text-sm text-gray-600 dark:text-gray-400">No modalities enabled.</div>;
       }
 
       return (
@@ -2363,7 +2363,7 @@ function LastLoadTracker({ name, open }) {
 
   return (
     <div className="mt-2 p-2 rounded-lg border border-black/10 dark:border-white/10">
-      <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+      <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
         <span className="font-medium">Last set:</span>{" "}
         {last
           ? <>
@@ -2447,4 +2447,5 @@ function LastLoadTracker({ name, open }) {
   </script>
 </body>
 </html>
+
 
